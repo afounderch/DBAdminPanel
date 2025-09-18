@@ -1,298 +1,227 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import {
+  Select,
+  InputNumber,
+  Button,
+  Form,
+  Card,
+  message,
+  Table,
+  Space,
+} from "antd";
 
-const initialState = {
-    medicine_name: "",
-    dosage: "",
-    associated_blood_tests: "",
-    dosage_and_instructions: [
-        {
-            title_name: "",
-            sub_title: [],
-            points: [""],
-        },
-    ],
-    key_warnings: [
-        {
-            title_with_points: [
-                {
-                    title: "",
-                    title_points: [""],
-                },
-            ],
-            points: [],
-        },
-    ],
-    possible_side_effects: [
-        {
-            title_with_points: [
-                {
-                    title: "",
-                    title_points: [""],
-                },
-            ],
-            points: [],
-        },
-    ],
-    special_precautions: [
-        {
-            title_with_points: [
-                {
-                    title: "",
-                    title_points: [""],
-                },
-            ],
-            points: [],
-        },
-    ],
-    storage_guideLines: [""],
-    note: [""],
-};
+const { Option } = Select;
 
-export default function MedicineForm() {
-    const [form, setForm] = useState(initialState);
+export default function DietAlgorithmMapping() {
+  const [form] = Form.useForm();
+  const [dietNodes, setDietNodes] = useState([]);
+  const [leftNodes, setLeftNodes] = useState([]);
+  const [rightNodes, setRightNodes] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [mappings, setMappings] = useState([]);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setForm((prev) => ({ ...prev, [name]: value }));
+  // ✅ Fetch dropdown data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(
+          "https://u5w4o3jcorm74cmr6dcc4k3t740mauug.lambda-url.ap-south-1.on.aws/getToDoLabels"
+        );
+        const data = await res.json();
+        setDietNodes(data.dietNodes || []);
+        setLeftNodes(data.leftNodes || []);
+        setRightNodes(data.rightNodes || []);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        message.error("Failed to load dropdown data");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // ✅ Add mapping row
+  const handleAdd = (values) => {
+    const leftObj = leftNodes.find((l) => l.Label_Id === values.leftLabel);
+    const rightObj = rightNodes.find((r) => r.Label_Id === values.rightLabel);
+
+    const newMapping = {
+      dietAlgorithm: values.dietAlgorithm,
+      day: values.day,
+      leftLabelId: leftObj?.Label_Id,
+      leftLabelName: leftObj?.Label_Name,
+      rightLabelId: rightObj?.Label_Id,
+      rightLabelName: rightObj?.Label_Name,
     };
 
-    // Helper for nested array fields
-    const handleArrayChange = (section, idx, key, value) => {
-        setForm((prev) => {
-            const updated = [...prev[section]];
-            updated[idx][key] = value;
-            return { ...prev, [section]: updated };
-        });
-    };
+    setMappings((prev) => [...prev, newMapping]);
 
-    // Helper for title_with_points
-    const handleTitleWithPointsChange = (section, idx, tIdx, key, value) => {
-        setForm((prev) => {
-            const updated = [...prev[section]];
-            updated[idx].title_with_points[tIdx][key] = value;
-            return { ...prev, [section]: updated };
-        });
-    };
+    // ❌ Do not reset form automatically
+    message.success("Mapping added!");
+  };
 
-    // Helper for points arrays
-    const handlePointsChange = (section, idx, pointsKey, pIdx, value) => {
-        setForm((prev) => {
-            const updated = [...prev[section]];
-            const pointsArr = [...updated[idx][pointsKey]];
-            pointsArr[pIdx] = value;
-            updated[idx][pointsKey] = pointsArr;
-            return { ...prev, [section]: updated };
-        });
-    };
+  // ✅ Reset form manually
+  const handleReset = () => {
+    form.resetFields();
+  };
 
-    // Helper for simple array fields
-    const handleSimpleArrayChange = (key, idx, value) => {
-        setForm((prev) => {
-            const arr = [...prev[key]];
-            arr[idx] = value;
-            return { ...prev, [key]: arr };
-        });
-    };
+  // ✅ Save all mappings
+  const handleSaveAll = async () => {
+    if (mappings.length === 0) {
+      message.warning("No mappings to save!");
+      return;
+    }
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        // Submit logic here
-        alert(JSON.stringify(form, null, 2));
-    };
+    try {
+      const res = await fetch("/saveAllMappings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(mappings),
+      });
 
-    return (
-        <form onSubmit={handleSubmit} style={{ maxWidth: 700, margin: "auto" }}>
-            <h2>Medicine Form</h2>
-            <label>
-                Medicine Name:
-                <input
-                    name="medicine_name"
-                    value={form.medicine_name}
-                    onChange={handleChange}
-                />
-            </label>
-            <br />
-            <label>
-                Dosage:
-                <input
-                    name="dosage"
-                    value={form.dosage}
-                    onChange={handleChange}
-                />
-            </label>
-            <br />
-            <label>
-                Associated Blood Tests:
-                <input
-                    name="associated_blood_tests"
-                    value={form.associated_blood_tests || ""}
-                    onChange={handleChange}
-                />
-            </label>
-            <hr />
+      if (!res.ok) throw new Error("API request failed");
 
-            <h3>Dosage and Instructions</h3>
-            {form.dosage_and_instructions.map((item, idx) => (
-                <div key={idx} style={{ border: "1px solid #ccc", padding: 10, marginBottom: 10 }}>
-                    <label>
-                        Title Name:
-                        <input
-                            value={item.title_name}
-                            onChange={e =>
-                                handleArrayChange("dosage_and_instructions", idx, "title_name", e.target.value)
-                            }
-                        />
-                    </label>
-                    <br />
-                    <label>
-                        Points:
-                        {item.points.map((pt, pIdx) => (
-                            <div key={pIdx}>
-                                <input
-                                    value={pt}
-                                    onChange={e =>
-                                        handlePointsChange("dosage_and_instructions", idx, "points", pIdx, e.target.value)
-                                    }
-                                />
-                            </div>
-                        ))}
-                    </label>
-                </div>
+      message.success("All mappings saved successfully!");
+      setMappings([]);
+    } catch (err) {
+      console.error(err);
+      message.error("Failed to save mappings");
+    }
+  };
+
+  // ✅ Table columns
+  const columns = [
+    { title: "Diet Algorithm", dataIndex: "dietAlgorithm", key: "dietAlgorithm" },
+    { title: "Day", dataIndex: "day", key: "day" },
+    { title: "Left Label ID", dataIndex: "leftLabelId", key: "leftLabelId" },
+    { title: "Left Label Name", dataIndex: "leftLabelName", key: "leftLabelName" },
+    { title: "Right Label ID", dataIndex: "rightLabelId", key: "rightLabelId" },
+    { title: "Right Label Name", dataIndex: "rightLabelName", key: "rightLabelName" },
+  ];
+
+  return (
+    <Card
+      title="Diet Algorithm Mapping"
+      style={{ maxWidth: 1200, margin: "20px auto" }}
+      className="shadow-md rounded-xl"
+    >
+      {/* Inline Form Row */}
+      <Form
+        form={form}
+        layout="inline"
+        onFinish={handleAdd}
+        style={{ marginBottom: 20, flexWrap: "nowrap" ,backgroundColor:'#ffffffff',padding:20,borderRadius:10,boxShadow:'0 2px 8px #f0f1f2'}}
+      >
+        {/* Diet Algorithm */}
+        <Form.Item
+          name="dietAlgorithm"
+          rules={[{ required: true, message: "Select Diet Algorithm" }]}
+        >
+          <Select
+            showSearch
+            placeholder="Diet Algorithm"
+            loading={loading}
+            optionFilterProp="children"
+            style={{ width: 200 }}
+          >
+            {dietNodes.map((item) => (
+              <Option key={item} value={item}>
+                {item}
+              </Option>
             ))}
+          </Select>
+        </Form.Item>
 
-            <h3>Key Warnings</h3>
-            {form.key_warnings.map((item, idx) => (
-                <div key={idx} style={{ border: "1px solid #ccc", padding: 10, marginBottom: 10 }}>
-                    {item.title_with_points.map((tw, tIdx) => (
-                        <div key={tIdx}>
-                            <label>
-                                Title:
-                                <input
-                                    value={tw.title}
-                                    onChange={e =>
-                                        handleTitleWithPointsChange("key_warnings", idx, tIdx, "title", e.target.value)
-                                    }
-                                />
-                            </label>
-                            <br />
-                            <label>
-                                Title Points:
-                                {tw.title_points.map((tp, tpIdx) => (
-                                    <div key={tpIdx}>
-                                        <input
-                                            value={tp}
-                                            onChange={e =>
-                                                setForm(prev => {
-                                                    const updated = [...prev.key_warnings];
-                                                    updated[idx].title_with_points[tIdx].title_points[tpIdx] = e.target.value;
-                                                    return { ...prev, key_warnings: updated };
-                                                })
-                                            }
-                                        />
-                                    </div>
-                                ))}
-                            </label>
-                        </div>
-                    ))}
-                </div>
+        {/* Day */}
+        <Form.Item
+          name="day"
+          rules={[
+            { required: true, message: "Enter Day" },
+            {
+              type: "number",
+              min: 1,
+              max: 999,
+              message: "Day must be between 1 and 999",
+            },
+          ]}
+        >
+          <InputNumber
+            min={1}
+            max={999}
+            placeholder="Day"
+            style={{ width: 100 }}
+          />
+        </Form.Item>
+
+        {/* Left Label */}
+        <Form.Item
+          name="leftLabel"
+          rules={[{ required: true, message: "Select Left Label" }]}
+        >
+          <Select
+            showSearch
+            placeholder="Left Label"
+            loading={loading}
+            optionFilterProp="children"
+            style={{ width: 200 }}
+          >
+            {leftNodes.map((item) => (
+              <Option key={item.Label_Id} value={item.Label_Id}>
+                {item.Label_Id} - {item.Label_Name}
+              </Option>
             ))}
+          </Select>
+        </Form.Item>
 
-            <h3>Possible Side Effects</h3>
-            {form.possible_side_effects.map((item, idx) => (
-                <div key={idx} style={{ border: "1px solid #ccc", padding: 10, marginBottom: 10 }}>
-                    {item.title_with_points.map((tw, tIdx) => (
-                        <div key={tIdx}>
-                            <label>
-                                Title:
-                                <input
-                                    value={tw.title}
-                                    onChange={e =>
-                                        handleTitleWithPointsChange("possible_side_effects", idx, tIdx, "title", e.target.value)
-                                    }
-                                />
-                            </label>
-                            <br />
-                            <label>
-                                Title Points:
-                                {tw.title_points.map((tp, tpIdx) => (
-                                    <div key={tpIdx}>
-                                        <input
-                                            value={tp}
-                                            onChange={e =>
-                                                setForm(prev => {
-                                                    const updated = [...prev.possible_side_effects];
-                                                    updated[idx].title_with_points[tIdx].title_points[tpIdx] = e.target.value;
-                                                    return { ...prev, possible_side_effects: updated };
-                                                })
-                                            }
-                                        />
-                                    </div>
-                                ))}
-                            </label>
-                        </div>
-                    ))}
-                </div>
+        {/* Right Label */}
+        <Form.Item
+          name="rightLabel"
+          rules={[{ required: true, message: "Select Right Label" }]}
+        >
+          <Select
+            showSearch
+            placeholder="Right Label"
+            loading={loading}
+            optionFilterProp="children"
+            style={{ width: 200 }}
+          >
+            {rightNodes.map((item) => (
+              <Option key={item.Label_Id} value={item.Label_Id}>
+                {item.Label_Id} - {item.Label_Name}
+              </Option>
             ))}
+          </Select>
+        </Form.Item>
 
-            <h3>Special Precautions</h3>
-            {form.special_precautions.map((item, idx) => (
-                <div key={idx} style={{ border: "1px solid #ccc", padding: 10, marginBottom: 10 }}>
-                    {item.title_with_points.map((tw, tIdx) => (
-                        <div key={tIdx}>
-                            <label>
-                                Title:
-                                <input
-                                    value={tw.title}
-                                    onChange={e =>
-                                        handleTitleWithPointsChange("special_precautions", idx, tIdx, "title", e.target.value)
-                                    }
-                                />
-                            </label>
-                            <br />
-                            <label>
-                                Title Points:
-                                {tw.title_points.map((tp, tpIdx) => (
-                                    <div key={tpIdx}>
-                                        <input
-                                            value={tp}
-                                            onChange={e =>
-                                                setForm(prev => {
-                                                    const updated = [...prev.special_precautions];
-                                                    updated[idx].title_with_points[tIdx].title_points[tpIdx] = e.target.value;
-                                                    return { ...prev, special_precautions: updated };
-                                                })
-                                            }
-                                        />
-                                    </div>
-                                ))}
-                            </label>
-                        </div>
-                    ))}
-                </div>
-            ))}
+        {/* Buttons - stay in same row */}
+        <Form.Item>
+          <Space>
+            <Button type="primary" htmlType="submit">
+              Add 
+            </Button>
+            <Button htmlType="button" onClick={handleReset}>
+              Reset
+            </Button>
+          </Space>
+        </Form.Item>
+      </Form>
 
-            <h3>Storage Guidelines</h3>
-            {form.storage_guideLines.map((sg, idx) => (
-                <div key={idx}>
-                    <input
-                        value={sg}
-                        onChange={e => handleSimpleArrayChange("storage_guideLines", idx, e.target.value)}
-                    />
-                </div>
-            ))}
+      {/* Table */}
+      <Table
+        columns={columns}
+        dataSource={mappings.map((m, i) => ({ key: i, ...m }))}
+        pagination={false}
+        bordered
+      />
 
-            <h3>Note</h3>
-            {form.note.map((n, idx) => (
-                <div key={idx}>
-                    <input
-                        value={n}
-                        onChange={e => handleSimpleArrayChange("note", idx, e.target.value)}
-                    />
-                </div>
-            ))}
-
-            <br />
-            <button type="submit">Submit</button>
-        </form>
-    );
+      {/* Save All Button */}
+      <div style={{ marginTop: 20, textAlign: "right" }}>
+        <Button type="primary" onClick={handleSaveAll}>
+          Save All
+        </Button>
+      </div>
+    </Card>
+  );
 }

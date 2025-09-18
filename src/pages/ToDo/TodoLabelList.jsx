@@ -14,6 +14,7 @@ import {
     Row,
     Col,
 } from "antd";
+import OperationStatus from "../../components/OperationStatus";
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -43,6 +44,7 @@ const TodoLabelList = () => {
         pageSize: 15,
         total: 0,
     });
+     const [operationStatus, setOperationStatus] = useState(null);
 
     const showModal = (record = null) => {
         setEditingRecord(record);
@@ -65,25 +67,26 @@ const TodoLabelList = () => {
     const toDoLabelDBOperations = async (values, type) => {
         try {
             let url = "";
+             const link="https://u5w4o3jcorm74cmr6dcc4k3t740mauug.lambda-url.ap-south-1.on.aws/"
             let method = "POST";
 
             if (type === "update") {
                 url =
-                    "https://rzurm3fftdp74hrqljesoikys40wzxbc.lambda-url.ap-south-1.on.aws/updateToDoLabels/" +
+                    link+"updateToDoLabels/" +
                     values.key;
                 method = "PUT";
             } else if (type === "insert") {
                 url =
-                    "https://rzurm3fftdp74hrqljesoikys40wzxbc.lambda-url.ap-south-1.on.aws/insertToDoLabels";
+                   link+"insertToDoLabels";
                 method = "POST";
             } else if (type === "delete") {
                 url =
-                    "https://rzurm3fftdp74hrqljesoikys40wzxbc.lambda-url.ap-south-1.on.aws/deleteToDoLabels/" +
+                    link+"deleteToDoLabels/" +
                     values.key;
                 method = "DELETE";
             } else if (type === "get") {
                 url =
-                    "https://rzurm3fftdp74hrqljesoikys40wzxbc.lambda-url.ap-south-1.on.aws/getToDoLabelList";
+                   link+"getToDoLabelList";
                 method = "POST";
             }
 
@@ -107,6 +110,7 @@ const TodoLabelList = () => {
     };
 
     const handleFinish = async (values) => {
+
         setModalLoading(true);
         setModalError("");
         const isEdit = !!editingRecord;
@@ -117,11 +121,12 @@ const TodoLabelList = () => {
 
             if (!ok.operationStatus) {
                 setModalError("Failed to save. Key might already exist. Check and try again.");
+                    setOperationStatus("error");
                 setModalLoading(false);
                 return;
             }
 
-            message.success(isEdit ? "Updated" : "Inserted");
+            setOperationStatus(type === "insert" ? "inserted" : "updated");
             handleCancel();
             fetchLabels(); // reload all after insert/update
         } catch (e) {
@@ -134,6 +139,7 @@ const TodoLabelList = () => {
     const handleDelete = async (key) => {
         const ok = await toDoLabelDBOperations({ key }, "delete");
         if (ok.operationStatus) {
+            setOperationStatus("deleted");
             message.success("Deleted");
             fetchLabels();
         } else {
@@ -268,7 +274,7 @@ const TodoLabelList = () => {
                 boxShadow: "0 2px 8px #f0f1f2",
             }}
         >
-            <Title level={3} style={{ marginBottom: 24 }}>
+            <Title level={1} style={{ marginBottom: 24 ,textAlign:'center'}}>
                 To-Do Labels Collection
             </Title>
 
@@ -313,6 +319,7 @@ const TodoLabelList = () => {
                         setFilterLabelType("");
                         setFilterToDoListType("");
                         setSortOrder("ascend");
+                        setOperationStatus(null);
                         fetchLabels();
                     }}
                 >
@@ -326,7 +333,8 @@ const TodoLabelList = () => {
                     Add New Label
                 </Button>
             </div>
-
+  <OperationStatus status={operationStatus} />
+         
             <Table
                 columns={columns}
                 dataSource={paginatedData}
@@ -349,9 +357,11 @@ const TodoLabelList = () => {
                 onCancel={handleCancel}
                 onOk={() => form.submit()}
                 okText={editingRecord ? "Update" : "Create"}
+                 okButtonProps={{ style: { backgroundColor: '#0e8fffff',width:200,fontWeight:'bold'} }}
+                cancelButtonProps={{ style: { width: 200,backgroundColor:'#d6d6d6ff', fontWeight:'bolder'} }}
                 confirmLoading={modalLoading}
                 centered
-                width={800}
+                width={1000}
             >
                 {modalError && (
                     <Alert
