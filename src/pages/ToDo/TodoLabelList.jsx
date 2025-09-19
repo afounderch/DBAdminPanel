@@ -266,7 +266,7 @@ const TodoLabelList = () => {
     return (
         <div
             style={{
-                maxWidth: 1800,
+                maxWidth: 1400,
                 margin: "40px auto",
                 padding: 24,
                 background: "#fff",
@@ -274,8 +274,8 @@ const TodoLabelList = () => {
                 boxShadow: "0 2px 8px #f0f1f2",
             }}
         >
-            <Title level={1} style={{ marginBottom: 24 ,textAlign:'center'}}>
-                To-Do Labels Collection
+            <Title level={1} style={{ marginBottom: 48 ,textAlign:'center'}}>
+                To-Do Left/Right Labels Collection
             </Title>
 
             <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
