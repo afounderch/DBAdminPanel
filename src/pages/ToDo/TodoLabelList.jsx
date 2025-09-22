@@ -16,6 +16,7 @@ import {
 } from "antd";
 import OperationStatus from "../../components/OperationStatus";
 
+
 const { Option } = Select;
 const { TextArea } = Input;
 const { Title } = Typography;
@@ -44,7 +45,11 @@ const TodoLabelList = () => {
         pageSize: 15,
         total: 0,
     });
-     const [operationStatus, setOperationStatus] = useState(null);
+    const [operationStatus, setOperationStatus] = useState(null);
+
+
+
+
 
     const showModal = (record = null) => {
         setEditingRecord(record);
@@ -67,26 +72,26 @@ const TodoLabelList = () => {
     const toDoLabelDBOperations = async (values, type) => {
         try {
             let url = "";
-             const link="https://u5w4o3jcorm74cmr6dcc4k3t740mauug.lambda-url.ap-south-1.on.aws/"
+            const link = "https://u5w4o3jcorm74cmr6dcc4k3t740mauug.lambda-url.ap-south-1.on.aws/"
             let method = "POST";
 
             if (type === "update") {
                 url =
-                    link+"updateToDoLabels/" +
+                    link + "updateToDoLabels/" +
                     values.key;
                 method = "PUT";
             } else if (type === "insert") {
                 url =
-                   link+"insertToDoLabels";
+                    link + "insertToDoLabels";
                 method = "POST";
             } else if (type === "delete") {
                 url =
-                    link+"deleteToDoLabels/" +
+                    link + "deleteToDoLabels/" +
                     values.key;
                 method = "DELETE";
             } else if (type === "get") {
                 url =
-                   link+"getToDoLabelList";
+                    link + "getToDoLabelList";
                 method = "POST";
             }
 
@@ -121,7 +126,7 @@ const TodoLabelList = () => {
 
             if (!ok.operationStatus) {
                 setModalError("Failed to save. Key might already exist. Check and try again.");
-                    setOperationStatus("error");
+                setOperationStatus("error");
                 setModalLoading(false);
                 return;
             }
@@ -274,8 +279,8 @@ const TodoLabelList = () => {
                 boxShadow: "0 2px 8px #f0f1f2",
             }}
         >
-            <Title level={1} style={{ marginBottom: 48 ,textAlign:'center'}}>
-                To-Do Left/Right Labels Collection
+            <Title level={1} style={{ marginBottom: 48, textAlign: 'center' }}>
+                To-Do Left / Right Label Collection
             </Title>
 
             <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
@@ -325,7 +330,7 @@ const TodoLabelList = () => {
                 >
                     Reset
                 </Button>
-                        {/* <Button 
+                {/* <Button 
                      type="primary"
                     onClick={() => {
                         setSearchText("");
@@ -337,7 +342,7 @@ const TodoLabelList = () => {
                     }}>
                     Refresh
                 </Button> */}
-        
+
                 <Button
                     type="primary"
                     style={{ marginLeft: "auto" }}
@@ -346,8 +351,7 @@ const TodoLabelList = () => {
                     Add New Label
                 </Button>
             </div>
-  <OperationStatus status={operationStatus} />
-         
+            <OperationStatus status={operationStatus} />
             <Table
                 columns={columns}
                 dataSource={paginatedData}
@@ -370,8 +374,8 @@ const TodoLabelList = () => {
                 onCancel={handleCancel}
                 onOk={() => form.submit()}
                 okText={editingRecord ? "Update" : "Create"}
-                 okButtonProps={{ style: { backgroundColor: '#0e8fffff',width:200,fontWeight:'bold'} }}
-                cancelButtonProps={{ style: { width: 200,backgroundColor:'#d6d6d6ff', fontWeight:'bolder'} }}
+                okButtonProps={{ style: { backgroundColor: '#0e8fffff', width: 200, fontWeight: 'bold' } }}
+                cancelButtonProps={{ style: { width: 200, backgroundColor: '#d6d6d6ff', fontWeight: 'bolder' } }}
                 confirmLoading={modalLoading}
                 centered
                 width={1000}
