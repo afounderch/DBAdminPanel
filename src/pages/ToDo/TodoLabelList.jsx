@@ -325,6 +325,19 @@ const TodoLabelList = () => {
                 >
                     Reset
                 </Button>
+                        {/* <Button 
+                     type="primary"
+                    onClick={() => {
+                        setSearchText("");
+                        setFilterLabelType("");
+                        setFilterToDoListType("");
+                        setSortOrder("ascend");
+                        setOperationStatus(null);
+                        fetchLabels();
+                    }}>
+                    Refresh
+                </Button> */}
+        
                 <Button
                     type="primary"
                     style={{ marginLeft: "auto" }}
