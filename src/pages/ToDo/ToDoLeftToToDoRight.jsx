@@ -24,8 +24,9 @@ export default function DietAlgorithmMappingPage() {
   const [filterDietAlgorithm, setFilterDietAlgorithm] = useState("");
   const [filterByDay, setFilterByDay] = useState("");
   const [filterLeftLabel, setFilterLeftLabel] = useState("");
-  const [sortOrderByDietId, setSortOrderByDietId] = useState("ascend");
-  const [sortOrderByDay, setSortOrderByDay] = useState("ascend");
+  const [sortOrderByDietId, setSortOrderByDietId] = useState("");
+  const [sortOrderByDay, setSortOrderByDay] = useState("");
+  const [sortOrderByLabel, setSortOrderByLabel] = useState("");
   const [pagination, setPagination] = useState({ current: 1, pageSize: 15, total: 0 });
   const [operationStatus, setOperationStatus] = useState(null);
 
@@ -77,7 +78,9 @@ export default function DietAlgorithmMappingPage() {
 
   // fetch all mappings
   const fetchMappings = async () => {
+    setAllData([]);
     const result = await dietMappingsDBOperations({}, "get");
+    //console.log(result.data);
     if (result.operationStatus) {
       const mapped = result.data.map((item) => ({
         DietTOLeftLabelEdgeId: item.DietTOLeftLabelEdgeId,
@@ -85,6 +88,7 @@ export default function DietAlgorithmMappingPage() {
         dietAlgorithmId: item.dietAlgorithmId,
         dietAlgorithmKey: item.dietAlgorithmKey,
         day: item.day,
+        order: item.order,
         leftLabelId: item?.leftLabelId,
         leftLabelKey: item?.leftLabelKey,
         leftLabelName: item?.leftLabelName,
@@ -93,6 +97,7 @@ export default function DietAlgorithmMappingPage() {
         rightLabelName: item?.rightLabelName
       }));
       setAllData(mapped);
+      // console.log(mapped);
       setPagination((prev) => ({ ...prev, total: mapped.length }));
     } else {
       message.error("Failed to load Diet Mappings.");
@@ -109,9 +114,14 @@ export default function DietAlgorithmMappingPage() {
     try {
       const res = await fetch(urlBase + "getToDoLabelsForEdge");
       const data = await res.json();
+      //console.log(data);
+      data.dietNodes.sort((a, b) => a.Diet_Key.localeCompare(b.Diet_Key));
+      data.leftNodes.sort((a, b) => a.Label_Key.localeCompare(b.Label_Key));
+      data.rightNodes.sort((a, b) => a.Label_Key.localeCompare(b.Label_Key));
       setDietNodes(data.dietNodes || []);
       setLeftNodes(data.leftNodes || []);
       setRightNodes(data.rightNodes || []);
+
     } catch (err) {
       console.error("Error fetching dropdowns:", err);
       message.error("Failed to load dropdown data");
@@ -135,7 +145,10 @@ export default function DietAlgorithmMappingPage() {
       result = result.filter((item) => item.dietAlgorithmKey === filterDietAlgorithm);
     }
     if (filterByDay) {
+
       result = result.filter((item) => item.day === parseInt(filterByDay));
+
+
     }
 
     if (filterLeftLabel) {
@@ -153,6 +166,13 @@ export default function DietAlgorithmMappingPage() {
         sortOrderByDay === "ascend" ? a.day - b.day : b.day - a.day
       );
     }
+    if (sortOrderByLabel) {
+      result.sort((a, b) =>
+        sortOrderByLabel === "ascend"
+          ? a.order - b.order
+          : b.order - a.order
+      );
+    }
 
     setPagination((prev) => ({ ...prev, total: result.length }));
     setData(result);
@@ -160,24 +180,24 @@ export default function DietAlgorithmMappingPage() {
 
   useEffect(() => {
     handleSearchAndFilter();
-  }, [searchText, filterDietAlgorithm, filterByDay, filterLeftLabel, sortOrderByDietId, sortOrderByDay, allData]);
+  }, [searchText, filterDietAlgorithm, filterByDay, filterLeftLabel, sortOrderByDietId, sortOrderByDay, sortOrderByLabel, allData]);
 
   const handleTableChange = (newPagination) => setPagination(newPagination);
 
-  const handleKeySort = () => {
-    let sortType = null;
-    if (sortOrderByDay) sortType = "day";
-    else if (sortOrderByDietId) sortType = "dietAlgorithm";
-    if (sortType === "day") {
-      if (sortOrderByDay === "ascend") setSortOrderByDay("descend");
-      else if (sortOrderByDay === "descend") setSortOrderByDay("ascend");
-      return;
-    }
-    else if (sortType === "dietAlgorithm") {
-      if (sortOrderByDietId === "ascend") setSortOrderByDietId("descend");
-      else if (sortOrderByDietId === "descend") setSortOrderByDietId("ascend");
-    };
+
+
+
+  const handleOrderByDaySort = () => {
+    if (sortOrderByDay === "ascend") setSortOrderByDay("descend"); else if (sortOrderByDay === "descend") setSortOrderByDay(null); else setSortOrderByDay("ascend");
   }
+  const handleOrderByDietIdSort = () => {
+    if (sortOrderByDietId === "ascend") setSortOrderByDietId("descend"); else if (sortOrderByDietId === "descend") setSortOrderByDietId(null); else setSortOrderByDietId("ascend");
+  }
+
+  const handleOrderByLabelOrderIdSort = () => {
+    if (sortOrderByLabel === "ascend") setSortOrderByLabel("descend"); else if (sortOrderByLabel === "descend") setSortOrderByLabel(null); else setSortOrderByLabel("ascend");
+  }
+
   // Edit modal
   const showEditModal = (record) => {
     //console.log(record);
@@ -186,6 +206,7 @@ export default function DietAlgorithmMappingPage() {
     editForm.setFieldsValue({
       dietAlgorithm: record.dietAlgorithmKey,
       day: record.day,
+      order: record.order,
       leftLabel: record.leftLabelName,
       rightLabel: record.rightLabelName
     });
@@ -206,6 +227,8 @@ export default function DietAlgorithmMappingPage() {
       dietAlgorithmId: dietAlgorithmObj?.Diet_Id,
       dietAlgorithmKey: dietAlgorithmObj?.Diet_Key,
       day: values.day,
+      order: values.order,
+
 
       leftLabelId: leftObj?.Label_Id,
       leftLabelKey: leftObj?.Label_Key,
@@ -249,7 +272,7 @@ export default function DietAlgorithmMappingPage() {
   const columns = [
     {
       title: (
-        <span style={{ cursor: "pointer" }} onClick={handleKeySort}>
+        <span style={{ cursor: "pointer" }} onClick={handleOrderByDietIdSort}>
           Diet Algorithm {sortOrderByDietId === "ascend" ? "↑" : sortOrderByDietId === "descend" ? "↓" : ""}
         </span>
       ),
@@ -259,10 +282,20 @@ export default function DietAlgorithmMappingPage() {
     },
     {
       title: (
-        <span style={{ cursor: "pointer" }} onClick={handleKeySort}>
+        <span style={{ cursor: "pointer" }} onClick={handleOrderByDaySort}>
           Day {sortOrderByDay === "ascend" ? "↑" : sortOrderByDay === "descend" ? "↓" : ""}
         </span>
       ), dataIndex: "day", key: "day"
+    },
+    //  {
+    //   title: "Day", dataIndex: "day", key: "day"
+    // },
+    {
+      title: (
+        <span style={{ cursor: "pointer" }} onClick={handleOrderByLabelOrderIdSort}>
+          Order {sortOrderByLabel === "ascend" ? "↑" : sortOrderByLabel === "descend" ? "↓" : ""}
+        </span>
+      ), dataIndex: "order", key: "order"
     },
     { title: "To-Do Left Label Name", dataIndex: "leftLabelName", key: "leftLabelName", render: (text) => text.replace(/^.*\//, ""), },
 
@@ -295,15 +328,17 @@ export default function DietAlgorithmMappingPage() {
   const [addForm] = Form.useForm();
   const [addedMappings, setAddedMappings] = useState([]);
 
-  const handleAddMapping = (values) => {
+  const handleAddMapping = async (values) => {
     const leftObj = leftNodes.find((l) => l.Label_Name === values.leftLabel);
     const rightObj = rightNodes.find((r) => r.Label_Name === values.rightLabel);
     const dietAlgorithmObj = dietNodes.find((d) => d.Diet_Key === values.dietAlgorithm);
 
     const newRow = {
+      key: `${values.dietAlgorithm}-${values.day}-${values.order}-${leftObj?.Label_Id}-${rightObj?.Label_Id}-${Date.now()}`,
       dietAlgorithmId: dietAlgorithmObj.Diet_Id,
       dietAlgorithmKey: dietAlgorithmObj.Diet_Key,
       day: values.day,
+      order: values.order,
       leftLabelId: leftObj?.Label_Id,
       leftLabelKey: leftObj?.Label_Key,
       leftLabelName: leftObj?.Label_Name,
@@ -311,10 +346,9 @@ export default function DietAlgorithmMappingPage() {
       rightLabelKey: rightObj?.Label_Key,
       rightLabelName: rightObj?.Label_Name
     };
-    //console.log(newRow);
-    setAddedMappings((prev) => [...prev, newRow]);
-    //console.log(addedMappings);
 
+    setAddedMappings((prev) => [...prev, newRow]);
+    message.success("Mapping added to the list. Click 'Save All' to save.");
   };
 
   const handleDeleteAdded = (key) => {
@@ -322,17 +356,20 @@ export default function DietAlgorithmMappingPage() {
   };
   //reset
   const handleReset = () => { addForm.resetFields(); }
+
   const handleSaveAllAdded = async () => {
     if (addedMappings.length === 0) {
       message.warning("No mappings to save!");
       return;
     }
     try {
+      //console.log(addedMappings);
       const res = await dietMappingsDBOperations(addedMappings, "insert");
       if (!res.operationStatus) throw new Error("Save failed");
       message.success("All mappings saved!");
       setAddedMappings([]);
       setAddModalVisible(false);
+      setAllData(addedMappings)
       handleReset();
       setOperationStatus("inserted");
       fetchMappings();
@@ -345,6 +382,7 @@ export default function DietAlgorithmMappingPage() {
   const addModalColumns = [
     { title: "Diet Algorithm", dataIndex: "dietAlgorithmKey", key: "dietAlgorithmKey" },
     { title: "Day", dataIndex: "day", key: "day" },
+    { title: "Order", dataIndex: "order", key: "order" },
 
     { title: "To-Do Left Label Name", dataIndex: "leftLabelName", key: "leftLabelName" },
 
@@ -380,7 +418,7 @@ export default function DietAlgorithmMappingPage() {
           placeholder="Filter by Diet Algorithm"
           value={filterDietAlgorithm || undefined}
           onChange={(val) => setFilterDietAlgorithm(val || "")}
-          style={{ width: 220 }}
+          style={{ width: 240 }}
         >
           {[...new Set(allData.map((i) => i.dietAlgorithmKey))].map((alg) => (
             <Option key={alg} value={alg}>
@@ -394,7 +432,7 @@ export default function DietAlgorithmMappingPage() {
           placeholder="Filter by Day"
           value={filterByDay || undefined}
           onChange={(val) => setFilterByDay(val || "")}
-          style={{ width: 120 }}
+          style={{ width: 140 }}
         >
           {[...new Set(allData.map((i) => i.day))].map((alg) => (
             <Option key={alg} value={alg}>
@@ -408,18 +446,21 @@ export default function DietAlgorithmMappingPage() {
           placeholder="Filter by Left Label"
           value={filterLeftLabel || undefined}
           onChange={(val) => setFilterLeftLabel(val || "")}
-          style={{ width: 220 }}
+          style={{ width: 240 }}
         >
           {[
             ...new Map(
-              allData.map((i) => [i.leftLabelId, i.leftLabelName, i.leftLabelKey])
+              allData.map((i) => [i.leftLabelId, i.leftLabelName])
             ).entries()
-          ].map(([id, name]) => (
-            <Option key={id} value={id}>
-              {id.replace(/^.*\//, "")} - {name}
-            </Option>
-          ))}
+          ]
+            .sort(([idA], [idB]) => idA.localeCompare(idB)) // ✅ sort by id
+            .map(([id, name]) => (
+              <Option key={id} value={id}>
+                {id.replace(/^.*\//, "")} - {name}
+              </Option>
+            ))}
         </Select>
+
         <Button
           type="primary"
           onClick={() => {
@@ -463,11 +504,12 @@ export default function DietAlgorithmMappingPage() {
         open={addModalVisible}
         onCancel={() => setAddModalVisible(false)}
         footer={null}
-        width={1200}
+        width={1400}
       >
-        <Form form={addForm} layout="inline" onFinish={handleAddMapping} style={{ marginBottom: 20, maxWidth: 1200, margin: "40px auto", padding: 24, background: "#fff", borderRadius: 8, boxShadow: "0 2px 8px #f0f1f2", justifyContent: "center" }}>
+
+        <Form form={addForm} layout="inline" onFinish={handleAddMapping} style={{ marginBottom: 12, maxWidth: 1400, margin: "40px auto", padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 2px 8px #f0f1f2", }}>
           <Form.Item name="dietAlgorithm" rules={[{ required: true, message: "Select Diet Algorithm" }]}>
-            <Select showSearch placeholder="Diet Algorithm" style={{ width: 200 }}>
+            <Select showSearch placeholder="Diet Algorithm" style={{ width: 270 }}>
               {dietNodes.map((d) => (
                 <Option key={d.Diet_Key} value={d.Diet_Key}>
                   {d.Diet_Key}
@@ -482,10 +524,19 @@ export default function DietAlgorithmMappingPage() {
               { type: "number", min: 1, max: 999, message: "Day must be 1-999" },
             ]}
           >
-            <InputNumber placeholder="Day" min={1} max={999} style={{ width: 100 }} />
+            <InputNumber placeholder="Day" min={1} max={999} style={{ width: 70 }} />
+          </Form.Item>
+          <Form.Item
+            name="order"
+            rules={[
+              { required: true, message: "Enter Order" },
+              { type: "number", min: 1, max: 999, message: "Order must be 1-999" },
+            ]}
+          >
+            <InputNumber placeholder="Order" min={1} max={999} style={{ width: 70 }} />
           </Form.Item>
           <Form.Item name="leftLabel" rules={[{ required: true, message: "Select Left Label" }]}>
-            <Select showSearch placeholder="To-Do Left Label" style={{ width: 200 }}>
+            <Select showSearch placeholder="To-Do Left Label" style={{ width: 280 }}>
               {leftNodes.map((l) => (
                 <Option key={l.Label_Key} value={l.Label_Name}>
                   {l.Label_Key} - {l.Label_Name}
@@ -494,7 +545,7 @@ export default function DietAlgorithmMappingPage() {
             </Select>
           </Form.Item>
           <Form.Item name="rightLabel" rules={[{ required: true, message: "Select Right Label" }]}>
-            <Select showSearch placeholder="To-Do Right Label" style={{ width: 200 }}>
+            <Select showSearch placeholder="To-Do Right Label" style={{ width: 280 }}>
               {rightNodes.map((r) => (
                 <Option key={r.Label_Key} value={r.Label_Name}>
                   {r.Label_Key} - {r.Label_Name}
@@ -504,26 +555,30 @@ export default function DietAlgorithmMappingPage() {
           </Form.Item>
           <Form.Item>
             <Space>
-              <Button type="primary" htmlType="submit">
+              <Button type="primary" htmlType="submit" style={{ width: 100 }} >
                 Add
               </Button>
-              <Button htmlType="button" onClick={handleReset}>
+              <Button htmlType="button" onClick={handleReset} style={{ width: 100 }}>
                 Reset
               </Button>
             </Space>
           </Form.Item>
         </Form>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+          <h4 style={{ marginBottom: 8 }}>New Node Connections to Save: {addedMappings.length}</h4>
+          <Button
+            type="primary"
+            onClick={handleSaveAllAdded}
+            disabled={addedMappings.length === 0}
+            style={{ marginTop: 16, width: 200 }}
+          >
+            Save All
+          </Button>
+        </div>
 
         <Table columns={addModalColumns} dataSource={addedMappings} rowKey="key" pagination={false} />
 
-        <Button
-          type="primary"
-          onClick={handleSaveAllAdded}
-          disabled={addedMappings.length === 0}
-          style={{ marginTop: 16, width: 200 }}
-        >
-          Save All
-        </Button>
+
       </Modal>
 
       {/* ---------------- EDIT MODAL ---------------- */}
@@ -534,7 +589,7 @@ export default function DietAlgorithmMappingPage() {
         onOk={() => editForm.submit()}
         okText="Update"
         cancelText="Cancel"
-        width={1200}
+        width={1400}
         okButtonProps={{ style: { backgroundColor: "#0e8fffff", width: 200, fontWeight: "bold" } }}
         cancelButtonProps={{ style: { width: 200, backgroundColor: "#d6d6d6ff", fontWeight: "bolder" } }}
       >
@@ -549,11 +604,12 @@ export default function DietAlgorithmMappingPage() {
             padding: 20,
             borderRadius: 10,
             boxShadow: "0 2px 8px #f0f1f2",
-            justifyContent: "center",
+            maxWidth: 1400,
+            justifyContent: "center"
           }}
         >
           <Form.Item name="dietAlgorithm" rules={[{ required: true, message: "Select Diet Algorithm" }]}>
-            <Select showSearch placeholder="Diet Algorithm" style={{ width: 200 }}>
+            <Select showSearch placeholder="Diet Algorithm" style={{ width: 300 }}>
               {dietNodes.map((d) => (
                 <Option key={d.Diet_Key} value={d.Diet_Key}>
                   {d.Diet_Key}
@@ -571,9 +627,18 @@ export default function DietAlgorithmMappingPage() {
           >
             <InputNumber placeholder="Day" min={1} max={999} style={{ width: 100 }} />
           </Form.Item>
+          <Form.Item
+            name="order"
+            rules={[
+              { required: true, message: "Enter Order" },
+              { type: "number", min: 1, max: 999, message: "Order must be 1-999" },
+            ]}
+          >
+            <InputNumber placeholder="Order" min={1} max={999} style={{ width: 100 }} />
+          </Form.Item>
 
           <Form.Item name="leftLabel" rules={[{ required: true, message: "Select Left Label" }]}>
-            <Select showSearch placeholder="To-Do Left Label" style={{ width: 200 }}>
+            <Select showSearch placeholder="To-Do Left Label" style={{ width: 320 }}>
               {leftNodes.map((l) => (
                 <Option key={l.Label_Key} value={l.Label_Name}>
                   {l.Label_Key} - {l.Label_Name}
@@ -583,7 +648,7 @@ export default function DietAlgorithmMappingPage() {
           </Form.Item>
 
           <Form.Item name="rightLabel" rules={[{ required: true, message: "Select Right Label" }]}>
-            <Select showSearch placeholder="To-Do Right Label" style={{ width: 200 }}>
+            <Select showSearch placeholder="To-Do Right Label" style={{ width: 320 }}>
               {rightNodes.map((r) => (
                 <Option key={r.Label_Key} value={r.Label_Name}>
                   {r.Label_Key} - {r.Label_Name}

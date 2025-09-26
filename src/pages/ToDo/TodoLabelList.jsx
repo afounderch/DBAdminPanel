@@ -15,18 +15,18 @@ import {
     Col,
 } from "antd";
 import OperationStatus from "../../components/OperationStatus";
-
+import Papa from "papaparse";
 
 const { Option } = Select;
 const { TextArea } = Input;
 const { Title } = Typography;
 
 const labelTypes = ["Left", "Right"];
-const toDoListTypes = ["ToDo", "General"];
+const toDoListTypes = ["Specific", "General"];
 
 const TodoLabelList = () => {
-    const [allData, setAllData] = useState([]); // keep everything here
-    const [data, setData] = useState([]); // filtered + paginated data
+    const [allData, setAllData] = useState([]); // all data
+    const [data, setData] = useState([]); // filtered + paginated
 
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [editingRecord, setEditingRecord] = useState(null);
@@ -40,6 +40,7 @@ const TodoLabelList = () => {
     const [modalLoading, setModalLoading] = useState(false);
     const [modalError, setModalError] = useState("");
 
+    const [importfileModalVisible, setImportFileModalVisible] = useState(false);
     const [pagination, setPagination] = useState({
         current: 1,
         pageSize: 15,
@@ -47,9 +48,101 @@ const TodoLabelList = () => {
     });
     const [operationStatus, setOperationStatus] = useState(null);
 
+    // ===================== CSV Import =====================
+    // Add two new state variables
+    const [selectedFile, setSelectedFile] = useState(null);
+    // Add new state variables for progress
+    const [importProgress, setImportProgress] = useState({
+        total: 0,
+        processed: 0,
+        successful: 0,
+        failedKeys: [],
+    });
+    const [importing, setImporting] = useState(false);
+
+    // Step 1: File selection
+    const handleFileSelect = (event) => {
+        if (event.target.files && event.target.files[0]) {
+            setSelectedFile(event.target.files[0]);
+            message.info(`File "${event.target.files[0].name}" selected`);
+        }
+    };
+
+    // Step 2: Click button to import
+    const handleImportCSV = async () => {
+        if (!selectedFile) {
+            message.error("Please select a CSV file first!");
+            return;
+        }
+
+        setImporting(true);
+        setImportProgress({ total: 0, processed: 0, successful: 0, failedKeys: [] });
+
+        Papa.parse(selectedFile, {
+            header: true,
+            skipEmptyLines: true,
+            complete: async (results) => {
+                const importedData = results.data.map((row) => ({
+                    key: row.key || row.Key,
+                    labelName: row.labelName || row["Label Name"],
+                    longText: row.longText || row["Long Text"] || "",
+                    shortText: row.shortText || row["Short Text"] || "",
+                    description: row.description || row.Description || "",
+                    labelType: row.labelType || row["Label Type"],
+                    toDoListType: row.toDoListType || row["ToDo List Type"]
+                }));
+
+                setImportProgress((prev) => ({ ...prev, total: importedData.length }));
+
+                // Map each insert into a promise
+                const insertPromises = importedData.map(async (item) => {
+                    const ok = await toDoLabelDBOperations(item, "insert");
+
+                    // Update progress after each insert
+                    setImportProgress((prev) => ({
+                        ...prev,
+                        processed: prev.processed + 1,
+                        successful: ok.operationStatus ? prev.successful + 1 : prev.successful,
+                        failedKeys: ok.operationStatus
+                            ? prev.failedKeys
+                            : [...prev.failedKeys, item.key],
+                    }));
+
+                    if (ok.operationStatus) {
+                        setAllData((prev) => [...prev, item]);
+                    }
+                });
+
+                // Wait for all inserts to complete
+                await Promise.allSettled(insertPromises);
+
+                // Show final messages
+                const { successful, failedKeys } = importProgress;
+                if (successful) {
+                    message.success(`${successful} rows imported successfully.`);
+                }
+                if (failedKeys.length) {
+                    message.warning(`Failed to insert keys: ${failedKeys.join(", ")}`);
+                }
+
+                setSelectedFile(null);
+                setImportFileModalVisible(false);
+                fetchLabels();
+                 setImportProgress({ total: 0, processed: 0, successful: 0, failedKeys: [] });
+                setImporting(false);
+            },
+            error: (err) => {
+                console.error(err);
+                message.error("Failed to parse CSV");
+                setImporting(false);
+            },
+        });
+    };
 
 
 
+  
+    // =======================================================
 
     const showModal = (record = null) => {
         setEditingRecord(record);
@@ -69,37 +162,31 @@ const TodoLabelList = () => {
         form.resetFields();
     };
 
+    // ========== DB Operations (fetch/update/delete/insert) ==========
     const toDoLabelDBOperations = async (values, type) => {
         try {
             let url = "";
-            const link = "https://u5w4o3jcorm74cmr6dcc4k3t740mauug.lambda-url.ap-south-1.on.aws/"
+            const link =
+                "https://u5w4o3jcorm74cmr6dcc4k3t740mauug.lambda-url.ap-south-1.on.aws/";
             let method = "POST";
 
             if (type === "update") {
-                url =
-                    link + "updateToDoLabels/" +
-                    values.key;
+                url = link + "updateToDoLabels/" + values.key;
                 method = "PUT";
             } else if (type === "insert") {
-                url =
-                    link + "insertToDoLabels";
+                url = link + "insertToDoLabels";
                 method = "POST";
             } else if (type === "delete") {
-                url =
-                    link + "deleteToDoLabels/" +
-                    values.key;
+                url = link + "deleteToDoLabels/" + values.key;
                 method = "DELETE";
             } else if (type === "get") {
-                url =
-                    link + "getToDoLabelList";
+                url = link + "getToDoLabelList";
                 method = "POST";
             }
 
             const response = await fetch(url, {
                 method,
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body:
                     type === "get" || (method !== "GET" && method !== "DELETE")
                         ? JSON.stringify(values)
@@ -115,7 +202,6 @@ const TodoLabelList = () => {
     };
 
     const handleFinish = async (values) => {
-
         setModalLoading(true);
         setModalError("");
         const isEdit = !!editingRecord;
@@ -125,7 +211,9 @@ const TodoLabelList = () => {
             const ok = await toDoLabelDBOperations(values, type);
 
             if (!ok.operationStatus) {
-                setModalError("Failed to save. Key might already exist. Check and try again.");
+                setModalError(
+                    "Failed to save. Key might already exist. Check and try again."
+                );
                 setOperationStatus("error");
                 setModalLoading(false);
                 return;
@@ -133,7 +221,7 @@ const TodoLabelList = () => {
 
             setOperationStatus(type === "insert" ? "inserted" : "updated");
             handleCancel();
-            fetchLabels(); // reload all after insert/update
+            fetchLabels(); // reload after insert/update
         } catch (e) {
             setModalError("An error occurred. Please try again.");
         } finally {
@@ -158,12 +246,12 @@ const TodoLabelList = () => {
         if (result.operationStatus) {
             const mapped = result.data.map((item) => ({
                 key: item._key,
-                labelName: item.label_name,
-                longText: item.long_text,
-                shortText: item.short_text,
-                description: item.description,
-                labelType: item.label_type,
-                toDoListType: item.todo_list_type,
+                labelName: item.LabelName,
+                longText: item.LongText,
+                shortText: item.ShortText,
+                description: item.Description,
+                labelType: item.LabelType,
+                toDoListType: item.TodoListType,
             }));
             setAllData(mapped);
             setPagination((prev) => ({ ...prev, total: mapped.length }));
@@ -172,7 +260,7 @@ const TodoLabelList = () => {
         }
     };
 
-    // filter + search + sort locally
+    // ========== Filter + Search + Sort locally ==========
     const handleSearchAndFilter = () => {
         let result = [...allData];
 
@@ -219,15 +307,17 @@ const TodoLabelList = () => {
 
     const handleKeySort = () => {
         if (sortOrder === "ascend") setSortOrder("descend");
-        else if (sortOrder === "descend") setSortOrder(null);
-        else setSortOrder("ascend");
+        else if (sortOrder === "descend") setSortOrder("ascend");
     };
 
     const columns = [
         {
             title: (
-                <span style={{ cursor: "pointer", userSelect: "none" }} onClick={handleKeySort}>
-                    Key {sortOrder === "ascend" ? "↑" : sortOrder === "descend" ? "↓" : ""}
+                <span
+                    style={{ cursor: "pointer", userSelect: "none" }}
+                    onClick={handleKeySort}
+                >
+                    Key{sortOrder === "ascend" ? "↑" :"↓"}
                 </span>
             ),
             dataIndex: "key",
@@ -262,7 +352,6 @@ const TodoLabelList = () => {
         },
     ];
 
-    // slice data for current page
     const paginatedData = data.slice(
         (pagination.current - 1) * pagination.pageSize,
         pagination.current * pagination.pageSize
@@ -279,11 +368,13 @@ const TodoLabelList = () => {
                 boxShadow: "0 2px 8px #f0f1f2",
             }}
         >
-            <Title level={1} style={{ marginBottom: 48, textAlign: 'center' }}>
+            <Title level={1} style={{ marginBottom: 48, textAlign: "center" }}>
                 To-Do Left / Right Label Collection
             </Title>
 
-            <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+            <div
+                style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}
+            >
                 <Input
                     placeholder="Search by Label Name or Key"
                     value={searchText}
@@ -330,18 +421,6 @@ const TodoLabelList = () => {
                 >
                     Reset
                 </Button>
-                {/* <Button 
-                     type="primary"
-                    onClick={() => {
-                        setSearchText("");
-                        setFilterLabelType("");
-                        setFilterToDoListType("");
-                        setSortOrder("ascend");
-                        setOperationStatus(null);
-                        fetchLabels();
-                    }}>
-                    Refresh
-                </Button> */}
 
                 <Button
                     type="primary"
@@ -350,8 +429,15 @@ const TodoLabelList = () => {
                 >
                     Add New Label
                 </Button>
+
+                {/* Import button */}
+                <Button type="primary" onClick={() => setImportFileModalVisible(true)}>
+                    Import CSV
+                </Button>
             </div>
+
             <OperationStatus status={operationStatus} />
+
             <Table
                 columns={columns}
                 dataSource={paginatedData}
@@ -363,19 +449,25 @@ const TodoLabelList = () => {
                     total: pagination.total,
                     showSizeChanger: true,
                     pageSizeOptions: ["10", "15", "20", "50"],
-                    showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+                    showTotal: (total, range) =>
+                        `${range[0]}-${range[1]} of ${total} items`,
                 }}
                 onChange={handleTableChange}
             />
 
+            {/* Modal */}
             <Modal
                 title={editingRecord ? "Edit Label" : "Add New Label"}
                 open={isModalVisible}
                 onCancel={handleCancel}
                 onOk={() => form.submit()}
                 okText={editingRecord ? "Update" : "Create"}
-                okButtonProps={{ style: { backgroundColor: '#0e8fffff', width: 200, fontWeight: 'bold' } }}
-                cancelButtonProps={{ style: { width: 200, backgroundColor: '#d6d6d6ff', fontWeight: 'bolder' } }}
+                okButtonProps={{
+                    style: { backgroundColor: "#0e8fffff", width: 200, fontWeight: "bold" },
+                }}
+                cancelButtonProps={{
+                    style: { width: 200, backgroundColor: "#d6d6d6ff", fontWeight: "bolder" },
+                }}
                 confirmLoading={modalLoading}
                 centered
                 width={1000}
@@ -474,6 +566,44 @@ const TodoLabelList = () => {
                     </Row>
                 </Form>
             </Modal>
+
+            {/* Import File Modal */}
+            <Modal
+                title="Import To-Do Labels from CSV"
+                open={importfileModalVisible}
+                onCancel={() => setImportFileModalVisible(false)}
+                footer={null}
+                centered
+                width={600}
+            >
+                <p>
+                    Please select a CSV file with the following headers: <br />
+                    Key, Label Name, Long Text, Short Text, Description, Label Type, ToDo List Type.
+                </p>
+                <p>
+                    Total: {importProgress.total} | Processed: {importProgress.processed} |
+                    Successful: {importProgress.successful} | Failed: {importProgress.failedKeys.length}
+                </p>
+
+
+
+                <Input
+                    type="file"
+                    accept=".csv"
+                    onChange={handleFileSelect}
+                    style={{ marginBottom: 16 }}
+                />
+                <Button
+                    type="primary"
+                    onClick={handleImportCSV}
+                    disabled={!selectedFile || importing}
+                    style={{ width: '100%' }}
+                >
+                    {importing ? 'Importing...' : 'Import'}
+                </Button>
+            </Modal>
+
+
         </div>
     );
 };
