@@ -229,7 +229,7 @@ export default function DietAlgorithmMappingPage() {
 
   const handleFinishEdit = async (values) => {
     setModalLoading(true);
-    console.log(values);
+    //console.log(values);
     // find selected objects for mapping
     const dietAlgorithmObj = dietNodes.find((d) => d.Diet_Key === values.dietAlgorithm);
     const leftObj = leftNodes.find((l) => l.Label_Name === values.leftLabel);
