@@ -54,7 +54,7 @@ export default function DietAlgorithmMappingPage() {
       let method = "POST";
 
       if (type === "update") {
-        //console.log(values);
+        console.log(values);
         url = urlBase + "updateDietToDoLabelEdges/";
         method = "PUT";
       } else if (type === "insert") {
@@ -218,7 +218,8 @@ export default function DietAlgorithmMappingPage() {
     setIsEditModalVisible(true);
     editForm.setFieldsValue({
       dietAlgorithm: record.dietAlgorithmKey,
-      respectiveLinkedNode: record.respectiveNodeName,
+      //respectiveLinkedNode: record.respectiveNodeName,
+      respectiveLinkedNode: record.respectiveNodeKey,
       day: record.day,
       order: record.order,
       leftLabel: record.leftLabelName,
@@ -228,6 +229,7 @@ export default function DietAlgorithmMappingPage() {
 
   const handleFinishEdit = async (values) => {
     setModalLoading(true);
+    console.log(values);
     // find selected objects for mapping
     const dietAlgorithmObj = dietNodes.find((d) => d.Diet_Key === values.dietAlgorithm);
     const leftObj = leftNodes.find((l) => l.Label_Name === values.leftLabel);
