@@ -10,9 +10,10 @@ import {
   Space,
   Popconfirm,
   Typography,
-  message,
+  message
 } from "antd";
 import OperationStatus from "../../components/OperationStatus";
+import Loader from "../../components/Loader"; 
 
 const { Option } = Select;
 const { Title } = Typography;
@@ -30,15 +31,19 @@ export default function DietAlgorithmMappingPage() {
   const [pagination, setPagination] = useState({ current: 1, pageSize: 15, total: 0 });
   const [operationStatus, setOperationStatus] = useState(null);
 
-  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
 
   const [dietNodes, setDietNodes] = useState([]);
   const [leftNodes, setLeftNodes] = useState([]);
   const [rightNodes, setRightNodes] = useState([]);
+  const [respectiveLinkedNodes, setRespectiveLinkedNodes] = useState([]);
+
   const [editForm] = Form.useForm();
   const [modalLoading, setModalLoading] = useState(false);
+
+  // NEW: overlay state to show saving indicator
+  const [isLoading, setLoading] = useState(false);
 
   const urlBase = "https://u5w4o3jcorm74cmr6dcc4k3t740mauug.lambda-url.ap-south-1.on.aws/";
 
@@ -49,7 +54,7 @@ export default function DietAlgorithmMappingPage() {
       let method = "POST";
 
       if (type === "update") {
-        console.log(values);
+        //console.log(values);
         url = urlBase + "updateDietToDoLabelEdges/";
         method = "PUT";
       } else if (type === "insert") {
@@ -83,8 +88,10 @@ export default function DietAlgorithmMappingPage() {
     //console.log(result.data);
     if (result.operationStatus) {
       const mapped = result.data.map((item) => ({
+        key: `${item.dietAlgorithmId}-${item.day}-${item.order}-${item.leftLabelId}-${item.rightLabelId}-${item.respectiveNodeId}`,
         DietTOLeftLabelEdgeId: item.DietTOLeftLabelEdgeId,
         LeftTORightLabelEdgeId: item.LeftTORightLabelEdgeId,
+        RightToNodeEdgeId: item.RightToNodeEdgeId,
         dietAlgorithmId: item.dietAlgorithmId,
         dietAlgorithmKey: item.dietAlgorithmKey,
         day: item.day,
@@ -94,7 +101,11 @@ export default function DietAlgorithmMappingPage() {
         leftLabelName: item?.leftLabelName,
         rightLabelId: item?.rightLabelId,
         rightLabelKey: item?.rightLabelKey,
-        rightLabelName: item?.rightLabelName
+        rightLabelName: item?.rightLabelName,
+        respectiveNodeId: item?.respectiveNodeId,
+        respectiveNodeKey: item?.respectiveNodeKey,
+        respectiveNodeName: item?.respectiveNodeName,
+
       }));
       setAllData(mapped);
       // console.log(mapped);
@@ -118,9 +129,11 @@ export default function DietAlgorithmMappingPage() {
       data.dietNodes.sort((a, b) => a.Diet_Key.localeCompare(b.Diet_Key));
       data.leftNodes.sort((a, b) => a.Label_Key.localeCompare(b.Label_Key));
       data.rightNodes.sort((a, b) => a.Label_Key.localeCompare(b.Label_Key));
+      data.respectiveLinkedNodes.sort((a, b) => a.Node_Key.localeCompare(b.Node_Key));
       setDietNodes(data.dietNodes || []);
       setLeftNodes(data.leftNodes || []);
       setRightNodes(data.rightNodes || []);
+      setRespectiveLinkedNodes(data.respectiveLinkedNodes || []);
 
     } catch (err) {
       console.error("Error fetching dropdowns:", err);
@@ -205,6 +218,7 @@ export default function DietAlgorithmMappingPage() {
     setIsEditModalVisible(true);
     editForm.setFieldsValue({
       dietAlgorithm: record.dietAlgorithmKey,
+      respectiveLinkedNode: record.respectiveNodeName,
       day: record.day,
       order: record.order,
       leftLabel: record.leftLabelName,
@@ -214,15 +228,17 @@ export default function DietAlgorithmMappingPage() {
 
   const handleFinishEdit = async (values) => {
     setModalLoading(true);
-
     // find selected objects for mapping
     const dietAlgorithmObj = dietNodes.find((d) => d.Diet_Key === values.dietAlgorithm);
     const leftObj = leftNodes.find((l) => l.Label_Name === values.leftLabel);
     const rightObj = rightNodes.find((r) => r.Label_Name === values.rightLabel);
+    const respectiveObj = respectiveLinkedNodes.find((n) => n.Node_Key === values.respectiveLinkedNode);
 
     const updatedRow = {
       edge1Id: editingRecord.DietTOLeftLabelEdgeId,
       edge2Id: editingRecord.LeftTORightLabelEdgeId,
+      edge3Id: editingRecord.RightToNodeEdgeId,
+
 
       dietAlgorithmId: dietAlgorithmObj?.Diet_Id,
       dietAlgorithmKey: dietAlgorithmObj?.Diet_Key,
@@ -237,6 +253,10 @@ export default function DietAlgorithmMappingPage() {
       rightLabelId: rightObj?.Label_Id,
       rightLabelKey: rightObj?.Label_Key,
       rightLabelName: rightObj?.Label_Name,
+
+      respectiveNodeId: respectiveObj?.Node_Id,
+      respectiveNodeKey: respectiveObj?.Node_Key,
+      respectiveNodeName: respectiveObj?.Node_Name
     };
 
     const ok = await dietMappingsDBOperations(updatedRow, "update");
@@ -256,13 +276,20 @@ export default function DietAlgorithmMappingPage() {
 
 
   // Delete
-  const handleDelete = async (edge1Id, edge2Id) => {
-    const ok = await dietMappingsDBOperations({ edge1Id, edge2Id }, "delete");
+  const handleDelete = async (edge1Id, edge2Id,edge3Id) => {
+    //console.log(edge1Id, edge2Id,edge3Id);
+    const ok = await dietMappingsDBOperations({ edge1Id, edge2Id,edge3Id }, "delete");
+    try {
     if (ok.operationStatus) {
       setOperationStatus("deleted");
       message.success("Deleted successfully");
       fetchMappings();
     } else {
+      message.error("Failed to delete. Try again.");
+    }}
+    catch (err) {
+      console.error(err);
+      setOperationStatus("error");
       message.error("Failed to delete. Try again.");
     }
   };
@@ -300,6 +327,7 @@ export default function DietAlgorithmMappingPage() {
     { title: "To-Do Left Label Name", dataIndex: "leftLabelName", key: "leftLabelName", render: (text) => text.replace(/^.*\//, ""), },
 
     { title: "To-Do Right Label Name", dataIndex: "rightLabelName", key: "rightLabelName", render: (text) => text.replace(/^.*\//, ""), },
+    {title:"Linked Node", dataIndex: "respectiveNodeName", key: "respectiveNodeName", render: (text) => text ? text.replace(/^.*\//, "") : "",},
     {
       title: "Actions",
       key: "actions",
@@ -308,7 +336,7 @@ export default function DietAlgorithmMappingPage() {
           <Button type="link" onClick={() => showEditModal(record)}>
             Edit
           </Button>
-          <Popconfirm title="Are you sure?" onConfirm={() => handleDelete(record.DietTOLeftLabelEdgeId, record.LeftTORightLabelEdgeId)}>
+          <Popconfirm title="Are you sure?" onConfirm={() => handleDelete(record.DietTOLeftLabelEdgeId, record.LeftTORightLabelEdgeId,record.RightToNodeEdgeId)}>
             <Button type="link" danger>
               Delete
             </Button>
@@ -329,14 +357,19 @@ export default function DietAlgorithmMappingPage() {
   const [addedMappings, setAddedMappings] = useState([]);
 
   const handleAddMapping = async (values) => {
+    //console.log(values);
     const leftObj = leftNodes.find((l) => l.Label_Name === values.leftLabel);
     const rightObj = rightNodes.find((r) => r.Label_Name === values.rightLabel);
+    const respectiveObj = respectiveLinkedNodes.find((n) => n.Node_Key === values.respectiveLinkedNode);
     const dietAlgorithmObj = dietNodes.find((d) => d.Diet_Key === values.dietAlgorithm);
 
     const newRow = {
       key: `${values.dietAlgorithm}-${values.day}-${values.order}-${leftObj?.Label_Id}-${rightObj?.Label_Id}-${Date.now()}`,
       dietAlgorithmId: dietAlgorithmObj.Diet_Id,
       dietAlgorithmKey: dietAlgorithmObj.Diet_Key,
+      respectiveNodeId: respectiveObj?.Node_Id,
+      respectiveNodeKey: respectiveObj?.Node_Key,
+      respectiveNodeName: respectiveObj?.Node_Name,
       day: values.day,
       order: values.order,
       leftLabelId: leftObj?.Label_Id,
@@ -348,6 +381,8 @@ export default function DietAlgorithmMappingPage() {
     };
 
     setAddedMappings((prev) => [...prev, newRow]);
+    // console.log(newRow);
+    // console.log(addedMappings);
     message.success("Mapping added to the list. Click 'Save All' to save.");
   };
 
@@ -362,6 +397,9 @@ export default function DietAlgorithmMappingPage() {
       message.warning("No mappings to save!");
       return;
     }
+    // show overlay
+    setLoading(true);
+
     try {
       //console.log(addedMappings);
       const res = await dietMappingsDBOperations(addedMappings, "insert");
@@ -376,6 +414,10 @@ export default function DietAlgorithmMappingPage() {
     } catch (err) {
       console.error(err);
       message.error("Failed to save mappings");
+      setOperationStatus("error");
+    } finally {
+      // always hide overlay
+      setLoading(false);
     }
   };
 
@@ -387,6 +429,7 @@ export default function DietAlgorithmMappingPage() {
     { title: "To-Do Left Label Name", dataIndex: "leftLabelName", key: "leftLabelName" },
 
     { title: "To-Do Right Label Name", dataIndex: "rightLabelName", key: "rightLabelName" },
+    { title: "Linked Node", dataIndex: "respectiveNodeName", key: "respectiveNodeName" },
     {
       title: "Action",
       key: "action",
@@ -504,12 +547,12 @@ export default function DietAlgorithmMappingPage() {
         open={addModalVisible}
         onCancel={() => setAddModalVisible(false)}
         footer={null}
-        width={1400}
+        width={1600}
       >
 
-        <Form form={addForm} layout="inline" onFinish={handleAddMapping} style={{ marginBottom: 12, maxWidth: 1400, margin: "40px auto", padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 2px 8px #f0f1f2", }}>
-          <Form.Item name="dietAlgorithm" rules={[{ required: true, message: "Select Diet Algorithm" }]}>
-            <Select showSearch placeholder="Diet Algorithm" style={{ width: 270 }}>
+        <Form form={addForm} layout="inline" onFinish={handleAddMapping} style={{ marginBottom: 12, maxWidth: 1600, margin: "40px auto", padding: 14,paddingTop:24,paddingBottom:24, background: "#fff", borderRadius: 8, boxShadow: "0 2px 8px #f0f1f2", }}>
+          <Form.Item name="dietAlgorithm" rules={[{ required: true, message: "Select Diet Algorithm" }]} style={{ flex: "1 1 260px", minWidth: 200 }}>
+            <Select showSearch placeholder="Diet Algorithm" style={{ width: "100%" }}>
               {dietNodes.map((d) => (
                 <Option key={d.Diet_Key} value={d.Diet_Key}>
                   {d.Diet_Key}
@@ -523,8 +566,9 @@ export default function DietAlgorithmMappingPage() {
               { required: true, message: "Enter Day" },
               { type: "number", min: 1, max: 999, message: "Day must be 1-999" },
             ]}
+            style={{ flex: "0 0 90px", minWidth: 90 }}
           >
-            <InputNumber placeholder="Day" min={1} max={999} style={{ width: 70 }} />
+            <InputNumber placeholder="Day" min={1} max={999} style={{ width: "100%" }} />
           </Form.Item>
           <Form.Item
             name="order"
@@ -532,11 +576,12 @@ export default function DietAlgorithmMappingPage() {
               { required: true, message: "Enter Order" },
               { type: "number", min: 1, max: 999, message: "Order must be 1-999" },
             ]}
+            style={{ flex: "0 0 90px", minWidth: 90 }}
           >
-            <InputNumber placeholder="Order" min={1} max={999} style={{ width: 70 }} />
+            <InputNumber placeholder="Order" min={1} max={999} style={{ width: "100%" }} />
           </Form.Item>
-          <Form.Item name="leftLabel" rules={[{ required: true, message: "Select Left Label" }]}>
-            <Select showSearch placeholder="To-Do Left Label" style={{ width: 280 }}>
+          <Form.Item name="leftLabel" rules={[{ required: true, message: "Select Left Label" }]} style={{ flex: "1 1 260px", minWidth: 200 }}>
+            <Select showSearch placeholder="To-Do Left Label" style={{ width: "100%" }}>
               {leftNodes.map((l) => (
                 <Option key={l.Label_Key} value={l.Label_Name}>
                   {l.Label_Key} - {l.Label_Name}
@@ -544,8 +589,8 @@ export default function DietAlgorithmMappingPage() {
               ))}
             </Select>
           </Form.Item>
-          <Form.Item name="rightLabel" rules={[{ required: true, message: "Select Right Label" }]}>
-            <Select showSearch placeholder="To-Do Right Label" style={{ width: 280 }}>
+          <Form.Item name="rightLabel" rules={[{ required: true, message: "Select Right Label" }]} style={{ flex: "1 1 260px", minWidth: 200 }}>
+            <Select showSearch placeholder="To-Do Right Label" style={{ width: "100%" }}>
               {rightNodes.map((r) => (
                 <Option key={r.Label_Key} value={r.Label_Name}>
                   {r.Label_Key} - {r.Label_Name}
@@ -553,15 +598,24 @@ export default function DietAlgorithmMappingPage() {
               ))}
             </Select>
           </Form.Item>
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit" style={{ width: 100 }} >
-                Add
-              </Button>
-              <Button htmlType="button" onClick={handleReset} style={{ width: 100 }}>
-                Reset
-              </Button>
-            </Space>
+          <Form.Item name="respectiveLinkedNode" rules={[{ required: true, message: "Select Linked Node" }]} style={{ flex: "1 1 260px", minWidth: 200 }}>
+            <Select showSearch placeholder="Linked Node" style={{ width: "100%" }}>
+              {respectiveLinkedNodes.map((r) => (
+                <Option key={r.Node_Key} value={r.Node_Key}>
+                  {r.Node_Key} - {r.Node_Name}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          {/* Responsive buttons row: two buttons side-by-side, each taking half width */}
+          <Form.Item style={{ display: "flex", gap: 8, width: "100%", marginTop: 28 ,justifyContent:"center"}}>
+            <Button type="primary" htmlType="submit" style={{ flex: 1, width: 150,padding:18 }}>
+              Add
+            </Button>
+            <Button htmlType="button" onClick={handleReset} style={{ flex: 1 , width: 150,padding:18 }}>
+              Reset
+            </Button>
           </Form.Item>
         </Form>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -570,7 +624,7 @@ export default function DietAlgorithmMappingPage() {
             type="primary"
             onClick={handleSaveAllAdded}
             disabled={addedMappings.length === 0}
-            style={{ marginTop: 16, width: 200 }}
+            style={{ marginTop: 16, width: 200,padding:18, fontWeight: "bold" }}
           >
             Save All
           </Button>
@@ -589,7 +643,7 @@ export default function DietAlgorithmMappingPage() {
         onOk={() => editForm.submit()}
         okText="Update"
         cancelText="Cancel"
-        width={1400}
+        width={1600}
         okButtonProps={{ style: { backgroundColor: "#0e8fffff", width: 200, fontWeight: "bold" } }}
         cancelButtonProps={{ style: { width: 200, backgroundColor: "#d6d6d6ff", fontWeight: "bolder" } }}
       >
@@ -599,17 +653,23 @@ export default function DietAlgorithmMappingPage() {
           onFinish={handleFinishEdit}
           style={{
             marginBottom: 20,
-            flexWrap: "nowrap",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 12,
             backgroundColor: "#fff",
             padding: 20,
             borderRadius: 10,
             boxShadow: "0 2px 8px #f0f1f2",
-            maxWidth: 1400,
+            maxWidth: 1600,
             justifyContent: "center"
           }}
         >
-          <Form.Item name="dietAlgorithm" rules={[{ required: true, message: "Select Diet Algorithm" }]}>
-            <Select showSearch placeholder="Diet Algorithm" style={{ width: 300 }}>
+          <Form.Item
+            name="dietAlgorithm"
+            rules={[{ required: true, message: "Select Diet Algorithm" }]}
+            style={{ flex: "1 1 260px", minWidth: 200 }}
+          >
+            <Select showSearch placeholder="Diet Algorithm" style={{ width: "100%" }}>
               {dietNodes.map((d) => (
                 <Option key={d.Diet_Key} value={d.Diet_Key}>
                   {d.Diet_Key}
@@ -624,8 +684,9 @@ export default function DietAlgorithmMappingPage() {
               { required: true, message: "Enter Day" },
               { type: "number", min: 1, max: 999, message: "Day must be 1-999" },
             ]}
+            style={{ flex: "0 0 90px", minWidth: 90 }}
           >
-            <InputNumber placeholder="Day" min={1} max={999} style={{ width: 100 }} />
+            <InputNumber placeholder="Day" min={1} max={999} style={{ width: "100%" }} />
           </Form.Item>
           <Form.Item
             name="order"
@@ -633,12 +694,17 @@ export default function DietAlgorithmMappingPage() {
               { required: true, message: "Enter Order" },
               { type: "number", min: 1, max: 999, message: "Order must be 1-999" },
             ]}
+            style={{ flex: "0 0 90px", minWidth: 90 }}
           >
-            <InputNumber placeholder="Order" min={1} max={999} style={{ width: 100 }} />
+            <InputNumber placeholder="Order" min={1} max={999} style={{ width: "100%" }} />
           </Form.Item>
 
-          <Form.Item name="leftLabel" rules={[{ required: true, message: "Select Left Label" }]}>
-            <Select showSearch placeholder="To-Do Left Label" style={{ width: 320 }}>
+          <Form.Item
+            name="leftLabel"
+            rules={[{ required: true, message: "Select Left Label" }]}
+            style={{ flex: "1 1 320px", minWidth: 200 }}
+          >
+            <Select showSearch placeholder="To-Do Left Label" style={{ width: "100%" }}>
               {leftNodes.map((l) => (
                 <Option key={l.Label_Key} value={l.Label_Name}>
                   {l.Label_Key} - {l.Label_Name}
@@ -647,8 +713,12 @@ export default function DietAlgorithmMappingPage() {
             </Select>
           </Form.Item>
 
-          <Form.Item name="rightLabel" rules={[{ required: true, message: "Select Right Label" }]}>
-            <Select showSearch placeholder="To-Do Right Label" style={{ width: 320 }}>
+          <Form.Item
+            name="rightLabel"
+            rules={[{ required: true, message: "Select Right Label" }]}
+            style={{ flex: "1 1 320px", minWidth: 200 }}
+          >
+            <Select showSearch placeholder="To-Do Right Label" style={{ width: "100%" }}>
               {rightNodes.map((r) => (
                 <Option key={r.Label_Key} value={r.Label_Name}>
                   {r.Label_Key} - {r.Label_Name}
@@ -656,8 +726,25 @@ export default function DietAlgorithmMappingPage() {
               ))}
             </Select>
           </Form.Item>
+          <Form.Item
+            name="respectiveLinkedNode"
+            rules={[{ required: true, message: "Select Linked Node" }]}
+            style={{ flex: "1 1 320px", minWidth: 200 }}
+          >
+            <Select showSearch placeholder="Linked Node" style={{ width: "100%" }}>
+              {respectiveLinkedNodes.map((r) => (
+                <Option key={r.Node_Key} value={r.Node_Key}>
+                  {r.Node_Key} - {r.Node_Name}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+
         </Form>
       </Modal>
+
+      {/* NEW: Full-screen saving overlay with centered loading indicator */}
+    <Loader loading={isLoading}  />
     </div>
   );
 }
