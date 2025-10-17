@@ -1,10 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import RecipeForm from "./pages/recipe/AddRecipe";  // adjust path
-import ToDoLabels from "./pages/ToDo/TodoLabelList"; // adjust path
+import ToDoLabels from "./pages/ToDo/ToDoLabelList"; // corrected casing
 import ToDoLeftRightEdge from "./pages/ToDo/ToDoLeftToToDoRight"; // adjust path casing
-import Supplements from "./pages/Supplements/Supplements"; // adjust path
-import Home from "./pages/ToDo/ToDoLeftToToDoRight"; // new import
-
+//import Supplements from "./pages/Supplements/Supplements"; // adjust path
+import SupplementsToDo from "./pages/Supplements/SupplementToDo";
 
 const App = () => {
 
@@ -22,10 +21,10 @@ const App = () => {
             </li>
             {/* <li key="recipe">
               <Link to="/DBAdminPanel/recipe">Recipe</Link>
-            </li>
+            </li>*/}
             <li key="supplements">
               <Link to="/DBAdminPanel/supplements">Supplements</Link>
-            </li> */}
+            </li> 
 
           </ul>
         </nav>
@@ -36,7 +35,7 @@ const App = () => {
         
           <Route path="/DBAdminPanel/recipe" element={<RecipeForm />} />
           <Route path="/DBAdminPanel/todo" element={<ToDoLabels />} />
-          <Route path="/DBAdminPanel/supplements" element={<Supplements />} />
+          <Route path="/DBAdminPanel/supplements" element={<SupplementsToDo />} />
           <Route path="/DBAdminPanel/todoEdge" element={<ToDoLeftRightEdge />} />
         </Routes>
       </div>
