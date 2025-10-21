@@ -91,14 +91,14 @@ export default function supplementsToDoMappingPage() {
     //console.log(result.data);
     if (result.operationStatus) {
       const mapped = result.data.map((item) => ({
-        key: `${item.conditionId}-${item.day}-${item.order}-${item.leftLabelId}-${item.rightLabelId}-${item.respectiveNodeId}-${Date.now()}-${Math.random()}`,
+        key: `${item.conditionId}-${item.day}-${item.todoLabelOrder}-${item.leftLabelId}-${item.rightLabelId}-${item.respectiveNodeId}-${Date.now()}-${Math.random()}`,
         ConditionTOLeftLabelEdgeId: item.ConditionTOLeftLabelEdgeId,
         LeftTORightLabelEdgeId: item.LeftTORightLabelEdgeId,
         RightToNodeEdgeId: item.RightToNodeEdgeId,
         conditionId: item.conditionId,
         conditionKey: item.conditionKey,
         day: item.day,
-        order: item.order,
+        todoLabelOrder: item.todoLabelOrder,
         therapyOrder: item.therapyOrder,
         leftLabelId: item?.leftLabelId,
         leftLabelKey: item?.leftLabelKey,
@@ -193,8 +193,8 @@ export default function supplementsToDoMappingPage() {
     if (sortOrderByLabel) {
       result.sort((a, b) =>
         sortOrderByLabel === "ascend"
-          ? a.order - b.order
-          : b.order - a.order
+          ? a.todoLabelOrder - b.todoLabelOrder
+          : b.todoLabelOrder - a.todoLabelOrder
       );
     }
 
@@ -237,7 +237,7 @@ export default function supplementsToDoMappingPage() {
       //respectiveLinkedNode: record.respectiveNodeName,
       respectiveLinkedNode: record.respectiveNodeKey,
       day: record.day,
-      order: record.order,
+      todoLabelOrder: record.todoLabelOrder,
       leftLabel: record.leftLabelName,
       rightLabel: record.rightLabelName,
         therapyOrder: record.therapyOrder
@@ -262,7 +262,7 @@ export default function supplementsToDoMappingPage() {
       conditionId: conditionNodesObj?.Condition_Id,
       conditionKey: conditionNodesObj?.Condition_Key,
       day: values.day,
-      order: values.order,
+      todoLabelOrder: leftObj?.Label_Order,
       therapyOrder: values.therapyOrder,
 
       leftLabelId: leftObj?.Label_Id,
@@ -349,7 +349,7 @@ export default function supplementsToDoMappingPage() {
         <span style={{ cursor: "pointer" }} onClick={handleOrderByLabelOrderIdSort}>
          ToDo Order {sortOrderByLabel === "ascend" ? "↑" : sortOrderByLabel === "descend" ? "↓" : ""}
         </span>
-      ), dataIndex: "order", key: "order"
+      ), dataIndex: "todoLabelOrder", key: "todoLabelOrder"
     },
     { title: "To-Do Left Label Name", dataIndex: "leftLabelName", key: "leftLabelName", render: (text) => text.replace(/^.*\//, ""), },
 
@@ -399,14 +399,14 @@ export default function supplementsToDoMappingPage() {
     const newRows = [];
     for (let day of days){
     newRows.push({
-      key: `${values.conditionNode}-${values.day}-${values.order}-${leftObj?.Label_Id}-${rightObj?.Label_Id}-${Date.now()}-${Math.random()}`,
+      key: `${values.conditionNode}-${values.day}-${values.todoLabelOrder}-${leftObj?.Label_Id}-${rightObj?.Label_Id}-${Date.now()}-${Math.random()}`,
       conditionId: conditionNodesObj.Condition_Id,
       conditionKey: conditionNodesObj.Condition_Key,
       respectiveNodeId: respectiveObj?.Node_Id,
       respectiveNodeKey: respectiveObj?.Node_Key,
       respectiveNodeName: respectiveObj?.Node_Name,
       day: day,
-      order: values.order,
+      todoLabelOrder: leftObj.Label_Order,
       therapyOrder: values.therapyOrder,
       leftLabelId: leftObj?.Label_Id,
       leftLabelKey: leftObj?.Label_Key,
@@ -419,7 +419,7 @@ export default function supplementsToDoMappingPage() {
 
     setAddedMappings((prev) => [...prev, ...newRows]);
     // console.log(newRow);
-    // console.log(addedMappings);
+    //console.log(addedMappings);
     message.success("Mapping added to the list. Click 'Save All' to save.");
   };
 
@@ -463,7 +463,7 @@ export default function supplementsToDoMappingPage() {
     { title: "Condition Node", dataIndex: "conditionKey", key: "conditionKey" },
     { title: "Therapy Day", dataIndex: "day", key: "day" },
     {title:"Order of Therapy", dataIndex:"therapyOrder", key:"therapyOrder"},
-    { title: "To-Do Order", dataIndex: "order", key: "order" },
+    { title: "To-Do Order", dataIndex: "todoLabelOrder", key: "todoLabelOrder" },
     { title: "To-Do Left Label Name", dataIndex: "leftLabelName", key: "leftLabelName" },
     { title: "To-Do Right Label Name", dataIndex: "rightLabelName", key: "rightLabelName" },
     { title: "Linked Supplement", dataIndex: "respectiveNodeName", key: "respectiveNodeName" },
@@ -659,8 +659,8 @@ export default function supplementsToDoMappingPage() {
             <InputNumber placeholder="Therapy Order" min={1} max={999} style={{ width: "100%" }} />
           </Form.Item>
           
-          <Form.Item
-            name="order"
+          {/* <Form.Item
+            name="todoLabelOrder"
             rules={[
               { required: true, message: "Enter To-Do Order" },
               { type: "number", min: 1, max: 999, message: "Order must be 1-999" },
@@ -668,7 +668,7 @@ export default function supplementsToDoMappingPage() {
             style={{ flex: "0 0 90px", minWidth: 120 }}
           >
             <InputNumber placeholder="To-Do Order" min={1} max={999} style={{ width: "100%" }} />
-          </Form.Item>
+          </Form.Item> */}
           <Form.Item name="leftLabel" rules={[{ required: true, message: "Select Left Label" }]} style={{ flex: "1 1 260px", minWidth: 200 }}>
             <Select showSearch placeholder="To-Do Left Label" style={{ width: "100%" }}>
               {leftNodes.map((l) => (
@@ -799,13 +799,13 @@ export default function supplementsToDoMappingPage() {
               { required: true, message: "Enter Order of Therapy" },
               { type: "number", min: 1, max: 999, message: "Order must be 1-999" },
             ]}
-            style={{ flex: "0 0 90px", minWidth: 120 }}
+            style={{ flex: "0 0 90px", minWidth: 160 }}
           >
             <InputNumber placeholder="Order of Therapy" min={1} max={999} style={{ width: "100%" }} />
           </Form.Item>
         
-          <Form.Item
-            name="order"
+          {/* <Form.Item
+            name="todoLabelOrder"
             rules={[
               { required: true, message: "Enter To-Do Order" },
               { type: "number", min: 1, max: 999, message: "Order must be 1-999" },
@@ -813,7 +813,7 @@ export default function supplementsToDoMappingPage() {
             style={{ flex: "0 0 90px", minWidth: 120 }}
           >
             <InputNumber placeholder="Order" min={1} max={999} style={{ width: "100%" }} />
-          </Form.Item>
+          </Form.Item> */}
 
           <Form.Item
             name="leftLabel"

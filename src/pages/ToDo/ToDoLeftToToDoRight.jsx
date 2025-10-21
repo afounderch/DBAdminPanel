@@ -54,7 +54,7 @@ export default function DietAlgorithmMappingPage() {
       let method = "POST";
 
       if (type === "update") {
-        console.log(values);
+        //console.log(values);
         url = urlBase + "updateDietToDoLabelEdges/";
         method = "PUT";
       } else if (type === "insert") {
@@ -88,14 +88,14 @@ export default function DietAlgorithmMappingPage() {
     //console.log(result.data);
     if (result.operationStatus) {
       const mapped = result.data.map((item) => ({
-        key: `${item.dietAlgorithmId}-${item.day}-${item.order}-${item.leftLabelId}-${item.rightLabelId}-${item.respectiveNodeId}`,
+        key: `${item.dietAlgorithmId}-${item.day}-${item.todoLabelOrder}-${item.leftLabelId}-${item.rightLabelId}-${item.respectiveNodeId}`,
         DietTOLeftLabelEdgeId: item.DietTOLeftLabelEdgeId,
         LeftTORightLabelEdgeId: item.LeftTORightLabelEdgeId,
         RightToNodeEdgeId: item.RightToNodeEdgeId,
         dietAlgorithmId: item.dietAlgorithmId,
         dietAlgorithmKey: item.dietAlgorithmKey,
         day: item.day,
-        order: item.order,
+        todoLabelOrder: item.todoLabelOrder,
         leftLabelId: item?.leftLabelId,
         leftLabelKey: item?.leftLabelKey,
         leftLabelName: item?.leftLabelName,
@@ -182,8 +182,8 @@ export default function DietAlgorithmMappingPage() {
     if (sortOrderByLabel) {
       result.sort((a, b) =>
         sortOrderByLabel === "ascend"
-          ? a.order - b.order
-          : b.order - a.order
+          ? a.todoLabelOrder - b.todoLabelOrder
+          : b.todoLabelOrder - a.todoLabelOrder
       );
     }
 
@@ -221,7 +221,7 @@ export default function DietAlgorithmMappingPage() {
       //respectiveLinkedNode: record.respectiveNodeName,
       respectiveLinkedNode: record.respectiveNodeKey,
       day: record.day,
-      order: record.order,
+      //todoLabelOrder: record.todoLabelOrder,
       leftLabel: record.leftLabelName,
       rightLabel: record.rightLabelName
     });
@@ -245,7 +245,7 @@ export default function DietAlgorithmMappingPage() {
       dietAlgorithmId: dietAlgorithmObj?.Diet_Id,
       dietAlgorithmKey: dietAlgorithmObj?.Diet_Key,
       day: values.day,
-      order: values.order,
+      todoLabelOrder: leftObj.Label_Order,
 
 
       leftLabelId: leftObj?.Label_Id,
@@ -322,9 +322,9 @@ export default function DietAlgorithmMappingPage() {
     {
       title: (
         <span style={{ cursor: "pointer" }} onClick={handleOrderByLabelOrderIdSort}>
-          Order {sortOrderByLabel === "ascend" ? "↑" : sortOrderByLabel === "descend" ? "↓" : ""}
+          To-Do Left Label Order {sortOrderByLabel === "ascend" ? "↑" : sortOrderByLabel === "descend" ? "↓" : ""}
         </span>
-      ), dataIndex: "order", key: "order"
+      ), dataIndex: "todoLabelOrder", key: "todoLabelOrder"
     },
     { title: "To-Do Left Label Name", dataIndex: "leftLabelName", key: "leftLabelName", render: (text) => text.replace(/^.*\//, ""), },
 
@@ -366,14 +366,14 @@ export default function DietAlgorithmMappingPage() {
     const dietAlgorithmObj = dietNodes.find((d) => d.Diet_Key === values.dietAlgorithm);
 
     const newRow = {
-      key: `${values.dietAlgorithm}-${values.day}-${values.order}-${leftObj?.Label_Id}-${rightObj?.Label_Id}-${Date.now()}`,
+      key: `${values.dietAlgorithm}-${values.day}-${values.todoLabelOrder}-${leftObj?.Label_Id}-${rightObj?.Label_Id}-${Date.now()}`,
       dietAlgorithmId: dietAlgorithmObj.Diet_Id,
       dietAlgorithmKey: dietAlgorithmObj.Diet_Key,
       respectiveNodeId: respectiveObj?.Node_Id,
       respectiveNodeKey: respectiveObj?.Node_Key,
       respectiveNodeName: respectiveObj?.Node_Name,
       day: values.day,
-      order: values.order,
+      todoLabelOrder: leftObj.Label_Order,
       leftLabelId: leftObj?.Label_Id,
       leftLabelKey: leftObj?.Label_Key,
       leftLabelName: leftObj?.Label_Name,
@@ -426,7 +426,7 @@ export default function DietAlgorithmMappingPage() {
   const addModalColumns = [
     { title: "Diet Algorithm", dataIndex: "dietAlgorithmKey", key: "dietAlgorithmKey" },
     { title: "Day", dataIndex: "day", key: "day" },
-    { title: "Order", dataIndex: "order", key: "order" },
+    { title: "To-Do Left Label Order", dataIndex: "todoLabelOrder", key: "todoLabelOrder" },
 
     { title: "To-Do Left Label Name", dataIndex: "leftLabelName", key: "leftLabelName" },
 
@@ -572,16 +572,16 @@ export default function DietAlgorithmMappingPage() {
           >
             <InputNumber placeholder="Day" min={1} max={999} style={{ width: "100%" }} />
           </Form.Item>
-          <Form.Item
-            name="order"
+          {/* <Form.Item
+            name="todoLabelOrder"
             rules={[
-              { required: true, message: "Enter Order" },
-              { type: "number", min: 1, max: 999, message: "Order must be 1-999" },
+              { required: true, message: "Enter To-Do Left Label Order" },
+              { type: "number", min: 1, max: 999, message: "To-Do Left Label Order must be 1-999" },
             ]}
             style={{ flex: "0 0 90px", minWidth: 90 }}
           >
-            <InputNumber placeholder="Order" min={1} max={999} style={{ width: "100%" }} />
-          </Form.Item>
+            <InputNumber placeholder="To-Do Left Label Order" min={1} max={999} style={{ width: "100%" }} />
+          </Form.Item> */}
           <Form.Item name="leftLabel" rules={[{ required: true, message: "Select Left Label" }]} style={{ flex: "1 1 260px", minWidth: 200 }}>
             <Select showSearch placeholder="To-Do Left Label" style={{ width: "100%" }}>
               {leftNodes.map((l) => (
@@ -690,16 +690,16 @@ export default function DietAlgorithmMappingPage() {
           >
             <InputNumber placeholder="Day" min={1} max={999} style={{ width: "100%" }} />
           </Form.Item>
-          <Form.Item
-            name="order"
+          {/* <Form.Item
+            name="todoLabelOrder"
             rules={[
-              { required: true, message: "Enter Order" },
-              { type: "number", min: 1, max: 999, message: "Order must be 1-999" },
+              { required: true, message: "Enter To-Do Left Label Order" },
+              { type: "number", min: 1, max: 999, message: "To-Do Left Label Order must be 1-999" },
             ]}
             style={{ flex: "0 0 90px", minWidth: 90 }}
           >
-            <InputNumber placeholder="Order" min={1} max={999} style={{ width: "100%" }} />
-          </Form.Item>
+            <InputNumber placeholder="To-Do Left Label Order" min={1} max={999} style={{ width: "100%" }} />
+          </Form.Item> */}
 
           <Form.Item
             name="leftLabel"

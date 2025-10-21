@@ -35,7 +35,8 @@ const TodoLabelList = () => {
     const [searchText, setSearchText] = useState("");
     const [filterLabelType, setFilterLabelType] = useState("");
     const [filterToDoListType, setFilterToDoListType] = useState("");
-    const [sortOrder, setSortOrder] = useState("ascend");
+    const [sortByKey, setSortByKey] = useState("ascend");
+    const [sortLabelOrder, setSortLabelOrder] = useState("ascend");
 
     const [modalLoading, setModalLoading] = useState(false);
     const [modalError, setModalError] = useState("");
@@ -89,7 +90,8 @@ const TodoLabelList = () => {
                     shortText: row.shortText || row["Short Text"] || "",
                     description: row.description || row.Description || "",
                     labelType: row.labelType || row["Label Type"],
-                    toDoListType: row.toDoListType || row["ToDo List Type"]
+                    toDoListType: row.toDoListType || row["ToDo List Type"],
+                    labelOrder: row.labelOrder || row["Label Order"] || "",
                 }));
 
                 setImportProgress((prev) => ({ ...prev, total: importedData.length }));
@@ -128,7 +130,7 @@ const TodoLabelList = () => {
                 setSelectedFile(null);
                 setImportFileModalVisible(false);
                 fetchLabels();
-                 setImportProgress({ total: 0, processed: 0, successful: 0, failedKeys: [] });
+                setImportProgress({ total: 0, processed: 0, successful: 0, failedKeys: [] });
                 setImporting(false);
             },
             error: (err) => {
@@ -141,7 +143,7 @@ const TodoLabelList = () => {
 
 
 
-  
+
     // =======================================================
 
     const showModal = (record = null) => {
@@ -171,6 +173,7 @@ const TodoLabelList = () => {
             let method = "POST";
 
             if (type === "update") {
+                //console.log("Updating values:", values);
                 url = link + "updateToDoLabels/" + values.key;
                 method = "PUT";
             } else if (type === "insert") {
@@ -206,10 +209,25 @@ const TodoLabelList = () => {
         setModalError("");
         const isEdit = !!editingRecord;
 
+        // Check if labelOrder is not equal to or less than the maximum existing value
+        // const maxLabelOrder = allData.reduce((max, item) => {
+        //     return item.labelType === "Left" && item.labelOrder
+        //         ? Math.max(max, Number(item.labelOrder))
+        //         : max;
+        // }, 0);
+
+        // if (values.labelOrder <= maxLabelOrder) {
+        //     setModalError("Label Order must be greater than existing values.");
+        //     setModalLoading(false);
+        //     return;
+        // }
+
         try {
             const type = isEdit ? "update" : "insert";
-            const ok = await toDoLabelDBOperations(values, type);
-
+            const ok = await toDoLabelDBOperations(
+               values,
+                type
+            );
             if (!ok.operationStatus) {
                 setModalError(
                     "Failed to save. Key might already exist. Check and try again."
@@ -247,6 +265,7 @@ const TodoLabelList = () => {
             const mapped = result.data.map((item) => ({
                 key: item._key,
                 labelName: item.LabelName,
+                labelOrder: item.LabelOrder,
                 longText: item.LongText,
                 shortText: item.ShortText,
                 description: item.Description,
@@ -281,12 +300,19 @@ const TodoLabelList = () => {
             result = result.filter((item) => item.toDoListType === filterToDoListType);
         }
 
-        if (sortOrder) {
+        if (sortByKey) {
             result.sort((a, b) =>
-                sortOrder === "ascend"
+                sortByKey === "ascend"
                     ? a.key.localeCompare(b.key)
                     : b.key.localeCompare(a.key)
             );
+        }
+        if(sortLabelOrder){
+            result.sort((a, b) => {
+                const aOrder = a.labelType === "Left" ? Number(a.labelOrder) : Infinity;
+                const bOrder = b.labelType === "Left" ? Number(b.labelOrder) : Infinity;
+                return sortLabelOrder === "ascend" ? aOrder - bOrder : bOrder - aOrder;
+            });
         }
 
         setPagination((prev) => ({ ...prev, total: result.length }));
@@ -299,15 +325,19 @@ const TodoLabelList = () => {
 
     useEffect(() => {
         handleSearchAndFilter();
-    }, [searchText, filterLabelType, filterToDoListType, sortOrder, allData]);
+    }, [searchText, filterLabelType, filterToDoListType, sortByKey, sortLabelOrder,allData]);
 
     const handleTableChange = (newPagination) => {
         setPagination(newPagination); // client-side pagination
     };
 
     const handleKeySort = () => {
-        if (sortOrder === "ascend") setSortOrder("descend");
-        else if (sortOrder === "descend") setSortOrder("ascend");
+        if (sortByKey === "ascend") setSortByKey("descend");
+        else if (sortByKey === "descend") setSortByKey("ascend");
+    };
+        const handleLeftLabelSort = () => {
+        if (sortLabelOrder === "ascend") setSortLabelOrder("descend");
+        else if (sortLabelOrder === "descend") setSortLabelOrder("ascend");
     };
 
     const columns = [
@@ -317,7 +347,7 @@ const TodoLabelList = () => {
                     style={{ cursor: "pointer", userSelect: "none" }}
                     onClick={handleKeySort}
                 >
-                    Key{sortOrder === "ascend" ? "↑" :"↓"}
+                    Key{sortByKey === "ascend" ? "↑" : "↓"}
                 </span>
             ),
             dataIndex: "key",
@@ -325,6 +355,20 @@ const TodoLabelList = () => {
         },
         { title: "Label Name", dataIndex: "labelName", key: "labelName" },
         { title: "Label Type", dataIndex: "labelType", key: "labelType" },
+        // show labelOrder only when labelType is "Left"
+        {
+            title: (
+                <span
+                    style={{ cursor: "pointer", userSelect: "none" }}
+                    onClick={handleLeftLabelSort}
+                >
+                    Left Label Order{sortLabelOrder === "ascend" ? "↑" : "↓"}
+                </span>
+            ),
+            dataIndex: "labelOrder",
+            key: "labelOrder",
+            render: (text, record) => (record.labelType === "Left" ? text : "N/A"),
+        },
         { title: "Long Text", dataIndex: "longText", key: "longText" },
         { title: "Short Text", dataIndex: "shortText", key: "shortText" },
         { title: "Description", dataIndex: "description", key: "description" },
@@ -414,7 +458,8 @@ const TodoLabelList = () => {
                         setSearchText("");
                         setFilterLabelType("");
                         setFilterToDoListType("");
-                        setSortOrder("ascend");
+                        setSortByKey("ascend");
+                        setSortLabelOrder("ascend");
                         setOperationStatus(null);
                         fetchLabels();
                     }}
@@ -486,6 +531,11 @@ const TodoLabelList = () => {
                     onFinish={handleFinish}
                     initialValues={{
                         labelType: labelTypes[0],
+                        labelOrder: allData.reduce((max, item) => {
+                            return item.labelType === "Left" && item.labelOrder
+                                ? Math.max(max, Number(item.labelOrder))
+                                : max;
+                        }, 0) + 1, // Set initial value to one more than the maximum existing value
                         toDoListType: toDoListTypes[0],
                         description: "",
                         shortText: "",
@@ -544,6 +594,31 @@ const TodoLabelList = () => {
                                 </Select>
                             </Form.Item>
                         </Col>
+
+                    </Row>
+                    <Row gutter={16}>
+                        <Col xs={24} sm={12}>
+                            {/* Render labelOrder input only when labelType === "Left" */}
+                            <Form.Item
+                                shouldUpdate={(prevValues, curValues) =>
+                                    prevValues.labelType !== curValues.labelType
+                                }
+                                noStyle
+                            >
+                                {() => {
+                                    const currentType = form.getFieldValue("labelType");
+                                    return currentType === "Left" ? (
+                                        <Form.Item
+                                            name="labelOrder"
+                                            label="Left Label Order"
+                                            rules={[{ required: true, message: "Please input left label order" }]}
+                                        >
+                                            <Input type="number" />
+                                        </Form.Item>
+                                    ) : null;
+                                }}
+                            </Form.Item>
+                        </Col>
                     </Row>
                     <Row gutter={16}>
                         <Col xs={24} sm={12}>
@@ -578,7 +653,7 @@ const TodoLabelList = () => {
             >
                 <p>
                     Please select a CSV file with the following headers: <br />
-                    Key, Label Name, Long Text, Short Text, Description, Label Type, ToDo List Type.
+                    Key, Label Name, Long Text, Short Text, Description, Label Type, Label Order, ToDo List Type.
                 </p>
                 <p>
                     Total: {importProgress.total} | Processed: {importProgress.processed} |
