@@ -222,8 +222,8 @@ export default function DietAlgorithmMappingPage() {
       respectiveLinkedNode: record.respectiveNodeKey,
       day: record.day,
       //todoLabelOrder: record.todoLabelOrder,
-      leftLabel: record.leftLabelName,
-      rightLabel: record.rightLabelName
+      leftLabel: record.leftLabelKey,
+      rightLabel: record.rightLabelKey
     });
   };
 
@@ -232,8 +232,8 @@ export default function DietAlgorithmMappingPage() {
     //console.log(values);
     // find selected objects for mapping
     const dietAlgorithmObj = dietNodes.find((d) => d.Diet_Key === values.dietAlgorithm);
-    const leftObj = leftNodes.find((l) => l.Label_Name === values.leftLabel);
-    const rightObj = rightNodes.find((r) => r.Label_Name === values.rightLabel);
+    const leftObj = leftNodes.find((l) => l.Label_Key === values.leftLabel);
+    const rightObj = rightNodes.find((r) => r.Label_Key === values.rightLabel);
     const respectiveObj = respectiveLinkedNodes.find((n) => n.Node_Key === values.respectiveLinkedNode);
 
     const updatedRow = {
@@ -358,21 +358,29 @@ export default function DietAlgorithmMappingPage() {
   const [addForm] = Form.useForm();
   const [addedMappings, setAddedMappings] = useState([]);
 
+function generateNumberSequenceArrayFrom(start, end) {
+  const length = end - start + 1;
+  return Array.from({ length: length }, (_, i) => start + i);
+}
   const handleAddMapping = async (values) => {
-    //console.log(values);
-    const leftObj = leftNodes.find((l) => l.Label_Name === values.leftLabel);
-    const rightObj = rightNodes.find((r) => r.Label_Name === values.rightLabel);
+  //  console.log(values);
+    const leftObj = leftNodes.find((l) => l.Label_Key === values.leftLabel);
+    const rightObj = rightNodes.find((r) => r.Label_Key === values.rightLabel);
     const respectiveObj = respectiveLinkedNodes.find((n) => n.Node_Key === values.respectiveLinkedNode);
     const dietAlgorithmObj = dietNodes.find((d) => d.Diet_Key === values.dietAlgorithm);
-
-    const newRow = {
-      key: `${values.dietAlgorithm}-${values.day}-${values.todoLabelOrder}-${leftObj?.Label_Id}-${rightObj?.Label_Id}-${Date.now()}`,
+    //generate days array
+    const days = generateNumberSequenceArrayFrom(values.day, values.endday);
+    //console.log(days);
+    const newRows = [];
+    for (let day of days){
+    newRows.push({
+      key: `${values.dietAlgorithm}-${values.day}-${values.todoLabelOrder}-${leftObj?.Label_Id}-${rightObj?.Label_Id}-${Date.now()}-${Math.random()}`,
       dietAlgorithmId: dietAlgorithmObj.Diet_Id,
       dietAlgorithmKey: dietAlgorithmObj.Diet_Key,
       respectiveNodeId: respectiveObj?.Node_Id,
       respectiveNodeKey: respectiveObj?.Node_Key,
       respectiveNodeName: respectiveObj?.Node_Name,
-      day: values.day,
+      day: day,
       todoLabelOrder: leftObj.Label_Order,
       leftLabelId: leftObj?.Label_Id,
       leftLabelKey: leftObj?.Label_Key,
@@ -380,9 +388,10 @@ export default function DietAlgorithmMappingPage() {
       rightLabelId: rightObj?.Label_Id,
       rightLabelKey: rightObj?.Label_Key,
       rightLabelName: rightObj?.Label_Name
-    };
+    });
+   }
 
-    setAddedMappings((prev) => [...prev, newRow]);
+    setAddedMappings((prev) => [...prev, ...newRows]);
     // console.log(newRow);
     // console.log(addedMappings);
     message.success("Mapping added to the list. Click 'Save All' to save.");
@@ -570,8 +579,18 @@ export default function DietAlgorithmMappingPage() {
             ]}
             style={{ flex: "0 0 90px", minWidth: 90 }}
           >
-            <InputNumber placeholder="Day" min={1} max={999} style={{ width: "100%" }} />
+            <InputNumber placeholder="Start Day" min={1} max={999} style={{ width: "100%" }} />
           </Form.Item>
+             <Form.Item
+                      name="endday"
+                      rules={[
+                        { required: true, message: "Enter End Day" },
+                        { type: "number", min: 1, max: 999, message: "Day must be 1-999" },
+                      ]}
+                      style={{ flex: "0 0 90px", minWidth: 90 }}
+                    >
+                      <InputNumber placeholder="End Day" min={1} max={999} style={{ width: "100%" }} />
+           </Form.Item>
           {/* <Form.Item
             name="todoLabelOrder"
             rules={[
@@ -585,7 +604,7 @@ export default function DietAlgorithmMappingPage() {
           <Form.Item name="leftLabel" rules={[{ required: true, message: "Select Left Label" }]} style={{ flex: "1 1 260px", minWidth: 200 }}>
             <Select showSearch placeholder="To-Do Left Label" style={{ width: "100%" }}>
               {leftNodes.map((l) => (
-                <Option key={l.Label_Key} value={l.Label_Name}>
+                <Option key={l.Label_Key} value={l.Label_Key}>
                   {l.Label_Key} - {l.Label_Name}
                 </Option>
               ))}
@@ -594,7 +613,7 @@ export default function DietAlgorithmMappingPage() {
           <Form.Item name="rightLabel" rules={[{ required: true, message: "Select Right Label" }]} style={{ flex: "1 1 260px", minWidth: 200 }}>
             <Select showSearch placeholder="To-Do Right Label" style={{ width: "100%" }}>
               {rightNodes.map((r) => (
-                <Option key={r.Label_Key} value={r.Label_Name}>
+                <Option key={r.Label_Key} value={r.Label_Key}>
                   {r.Label_Key} - {r.Label_Name}
                 </Option>
               ))}
@@ -690,6 +709,7 @@ export default function DietAlgorithmMappingPage() {
           >
             <InputNumber placeholder="Day" min={1} max={999} style={{ width: "100%" }} />
           </Form.Item>
+       
           {/* <Form.Item
             name="todoLabelOrder"
             rules={[
@@ -708,7 +728,7 @@ export default function DietAlgorithmMappingPage() {
           >
             <Select showSearch placeholder="To-Do Left Label" style={{ width: "100%" }}>
               {leftNodes.map((l) => (
-                <Option key={l.Label_Key} value={l.Label_Name}>
+                <Option key={l.Label_Key} value={l.Label_Key}>
                   {l.Label_Key} - {l.Label_Name}
                 </Option>
               ))}
@@ -722,7 +742,7 @@ export default function DietAlgorithmMappingPage() {
           >
             <Select showSearch placeholder="To-Do Right Label" style={{ width: "100%" }}>
               {rightNodes.map((r) => (
-                <Option key={r.Label_Key} value={r.Label_Name}>
+                <Option key={r.Label_Key} value={r.Label_Key}>
                   {r.Label_Key} - {r.Label_Name}
                 </Option>
               ))}
