@@ -223,6 +223,7 @@ const TodoLabelList = () => {
         // }
 
         try {
+            console.log(values)
             const type = isEdit ? "update" : "insert";
             const ok = await toDoLabelDBOperations(
                values,

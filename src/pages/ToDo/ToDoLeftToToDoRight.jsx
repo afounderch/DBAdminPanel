@@ -255,6 +255,8 @@ export default function DietAlgorithmMappingPage() {
       rightLabelId: rightObj?.Label_Id,
       rightLabelKey: rightObj?.Label_Key,
       rightLabelName: rightObj?.Label_Name,
+      rightLabelShortText: rightObj?.Label_Short_Text,
+      rightLabelLongText: rightObj?.Label_Long_Text,
 
       respectiveNodeId: respectiveObj?.Node_Id,
       respectiveNodeKey: respectiveObj?.Node_Key,
@@ -387,7 +389,9 @@ function generateNumberSequenceArrayFrom(start, end) {
       leftLabelName: leftObj?.Label_Name,
       rightLabelId: rightObj?.Label_Id,
       rightLabelKey: rightObj?.Label_Key,
-      rightLabelName: rightObj?.Label_Name
+      rightLabelName: rightObj?.Label_Name,
+      rightLabelShortText: rightObj?.Label_Short_Text,
+      rightLabelLongText: rightObj?.Label_Long_Text,
     });
    }
 
