@@ -601,7 +601,7 @@ const Supplements = () => {
     const supplementsDBOperations = async (values, type) => {
         try {
             let url = "";
-            const link = "https://u5w4o3jcorm74cmr6dcc4k3t740mauug.lambda-url.ap-south-1.on.aws/"
+            const link = "https://e2xnu2maf2ytczggyzgo5r6jsy0mfwjt.lambda-url.ap-south-1.on.aws/"
             let method = "POST";
 
             if (type === "update") {
@@ -704,6 +704,7 @@ const Supplements = () => {
 
         } catch (e) {
             setModalError("An error occurred. Please try again.");
+            console.log(e)
         } finally {
 
             setModalLoading(false);
@@ -726,9 +727,8 @@ const Supplements = () => {
             }
         } catch (e) {
             setOperationStatus("error");
-        } finally {
-
-        }
+            console.log(e)
+        } 
     };
 
     // fetch ALL once

@@ -4,6 +4,7 @@ import ToDoLabels from "./pages/ToDo/ToDoLabelList"; // corrected casing
 import ToDoLeftRightEdge from "./pages/ToDo/ToDoLeftToToDoRight"; // adjust path casing
 //import Supplements from "./pages/Supplements/Supplements"; // adjust path
 import SupplementsToDo from "./pages/Supplements/SupplementToDo";
+import Steps from "./pages/steps/step";
 
 const App = () => {
 
@@ -14,16 +15,19 @@ const App = () => {
                 <nav className="bg-gray-800 p-4">
           <ul className="flex space-x-4">
              <li key="todo">
-              <Link to="/DBAdminPanel/todo">ToDo Labels</Link>
+              <Link to="/todo">ToDo Labels</Link>
             </li>
             <li key="todoEdge">
-              <Link to="/DBAdminPanel/todoEdge">ToDo Left/Right Edge Mappings</Link>
+              <Link to="/todoEdge">ToDo Left/Right Edge Mappings</Link>
             </li>
             {/* <li key="recipe">
               <Link to="/DBAdminPanel/recipe">Recipe</Link>
             </li>*/}
             <li key="supplements">
-              <Link to="/DBAdminPanel/supplements">Supplements</Link>
+              <Link to="/supplements">Supplements</Link>
+            </li> 
+              <li key="steps">
+              <Link to="/step">Steps</Link>
             </li> 
 
           </ul>
@@ -31,12 +35,13 @@ const App = () => {
 
 
         <Routes>
-          <Route exact path="/DBAdminPanel" element={<h1>Hello</h1>} />
+          <Route exact path="/" element={<h1>Hello</h1>} />
         
-          <Route path="/DBAdminPanel/recipe" element={<RecipeForm />} />
-          <Route path="/DBAdminPanel/todo" element={<ToDoLabels />} />
-          <Route path="/DBAdminPanel/supplements" element={<SupplementsToDo />} />
-          <Route path="/DBAdminPanel/todoEdge" element={<ToDoLeftRightEdge />} />
+          <Route path="/recipe" element={<RecipeForm />} />
+          <Route path="/todo" element={<ToDoLabels />} />
+          <Route path="/supplements" element={<SupplementsToDo />} />
+          <Route path="/todoEdge" element={<ToDoLeftRightEdge />} />
+          <Route path="/step" element={<Steps />}/>
         </Routes>
       </div>
     </Router>

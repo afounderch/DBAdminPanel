@@ -163,13 +163,14 @@ const TodoLabelList = () => {
         setModalError("");
         form.resetFields();
     };
+    
 
     // ========== DB Operations (fetch/update/delete/insert) ==========
     const toDoLabelDBOperations = async (values, type) => {
         try {
             let url = "";
             const link =
-                "https://u5w4o3jcorm74cmr6dcc4k3t740mauug.lambda-url.ap-south-1.on.aws/";
+                "https://e2xnu2maf2ytczggyzgo5r6jsy0mfwjt.lambda-url.ap-south-1.on.aws/";
             let method = "POST";
 
             if (type === "update") {
@@ -242,7 +243,7 @@ const TodoLabelList = () => {
             handleCancel();
             fetchLabels(); // reload after insert/update
         } catch (e) {
-            setModalError("An error occurred. Please try again.");
+            setModalError("An error occurred. Please try again.",e);
         } finally {
             setModalLoading(false);
         }

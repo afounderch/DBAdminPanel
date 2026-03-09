@@ -45,7 +45,7 @@ export default function DietAlgorithmMappingPage() {
   // NEW: overlay state to show saving indicator
   const [isLoading, setLoading] = useState(false);
 
-  const urlBase = "https://u5w4o3jcorm74cmr6dcc4k3t740mauug.lambda-url.ap-south-1.on.aws/";
+  const urlBase = "https://e2xnu2maf2ytczggyzgo5r6jsy0mfwjt.lambda-url.ap-south-1.on.aws/";
 
   // DB operation helper
   const dietMappingsDBOperations = async (values, type) => {
@@ -770,7 +770,7 @@ function generateNumberSequenceArrayFrom(start, end) {
       </Modal>
 
       {/* NEW: Full-screen saving overlay with centered loading indicator */}
-    <Loader loading={isLoading}  />
+    <Loader loading={isLoading ?? modalLoading}  />
     </div>
   );
 }

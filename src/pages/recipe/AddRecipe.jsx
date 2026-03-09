@@ -139,7 +139,7 @@ const RecipeForm = () => {
       };
   
       const response = await fetch(
-        "https://3ts36w67tspxpy4i2mq2lrtsiq0tyuzr.lambda-url.ap-south-1.on.aws/insertRecipe",
+        "https://e2xnu2maf2ytczggyzgo5r6jsy0mfwjt.lambda-url.ap-south-1.on.aws/insertRecipe",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

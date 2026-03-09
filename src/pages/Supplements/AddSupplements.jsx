@@ -365,19 +365,19 @@ function SectionWithRadio({ label, radioName, radioOptions, radioValue, setRadio
 
     if (type === "update") {
       url =
-        "https:https://rzurm3fftdp74hrqljesoikys40wzxbc.lambda-url.ap-south-1.on.aws/updateSupplements/" + values.medicine_id;
+        "https://e2xnu2maf2ytczggyzgo5r6jsy0mfwjt.lambda-url.ap-south-1.on.aws/updateSupplements/" + values.medicine_id;
       method = "PUT";
     } else if (type === "insert") {
       url =
-        "https://rzurm3fftdp74hrqljesoikys40wzxbc.lambda-url.ap-south-1.on.aws/insertSupplements";
+        "https://e2xnu2maf2ytczggyzgo5r6jsy0mfwjt.lambda-url.ap-south-1.on.aws/insertSupplements";
       method = "POST";
     } else if (type === "delete") {
       url =
-        "https://rzurm3fftdp74hrqljesoikys40wzxbc.lambda-url.ap-south-1.on.aws/deleteSupplements/" + values.medicine_id;
+        "https://e2xnu2maf2ytczggyzgo5r6jsy0mfwjt.lambda-url.ap-south-1.on.aws/deleteSupplements/" + values.medicine_id;
       method = "DELETE";
     } else if (type === "get") {
       url =
-        "https://rzurm3fftdp74hrqljesoikys40wzxbc.lambda-url.ap-south-1.on.aws/getSupplementsList";
+        "https://e2xnu2maf2ytczggyzgo5r6jsy0mfwjt.lambda-url.ap-south-1.on.aws/getSupplementsList";
       method = "POST";
     }
 
