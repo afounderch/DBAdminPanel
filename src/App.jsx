@@ -1,48 +1,41 @@
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-import RecipeForm from "./pages/recipe/AddRecipe";  // adjust path
-import ToDoLabels from "./pages/ToDo/ToDoLabelList"; // corrected casing
-import ToDoLeftRightEdge from "./pages/ToDo/ToDoLeftToToDoRight"; // adjust path casing
-//import Supplements from "./pages/Supplements/Supplements"; // adjust path
-import SupplementsToDo from "./pages/Supplements/SupplementToDo";
-import Steps from "./pages/steps/step";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
+import Sidebar from "./components/SideBarComponent";
+
+import RecipeForm from "./pages/collection/recipes/AddRecipe"; //recipe
+import ToDoLabels from "./pages/collection/todoLabels/ToDoLabelList";
+import Steps from "./pages/collection/steps/steps";
+import Supplements from "./pages/collection/supplements/Supplements"
+
+import ToDoLeftRightEdge from "./pages/edges/toDoLeftToRight/ToDoLeftToToDoRight";
+import ToDoSupplementsMapping from "./pages/edges/toDoSupplementEdge/ToDoSupplementsMapping";
+
+
+
 
 const App = () => {
-
-
+  
   return (
     <Router>
-      <div>
-                <nav className="bg-gray-800 p-4">
-          <ul className="flex space-x-4">
-             <li key="todo">
-              <Link to="/todo">ToDo Labels</Link>
-            </li>
-            <li key="todoEdge">
-              <Link to="/todoEdge">ToDo Left/Right Edge Mappings</Link>
-            </li>
-            {/* <li key="recipe">
-              <Link to="/DBAdminPanel/recipe">Recipe</Link>
-            </li>*/}
-            <li key="supplements">
-              <Link to="/supplements">Supplements</Link>
-            </li> 
-              <li key="steps">
-              <Link to="/step">Steps</Link>
-            </li> 
+      <div style={{ display: "flex", height: "100vh" }}>
 
-          </ul>
-        </nav>
+        <Sidebar />
 
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <Routes>
+            <Route path="/" element={<h2>Welcome</h2>} />
+            
+            <Route path="/recipe" element={<RecipeForm />} />
+            <Route path="/todo" element={<ToDoLabels />} />
+            <Route path="/step" element={<Steps />} />
+            <Route path="/supplement" element={<Supplements />} />
+            
+            <Route path="/todoEdge" element={<ToDoLeftRightEdge />} />
+            <Route path="/todoSupplementEdge" element={<ToDoSupplementsMapping />} />
+           
+          </Routes>
+        </div>
 
-        <Routes>
-          <Route exact path="/" element={<h1>Hello</h1>} />
-        
-          <Route path="/recipe" element={<RecipeForm />} />
-          <Route path="/todo" element={<ToDoLabels />} />
-          <Route path="/supplements" element={<SupplementsToDo />} />
-          <Route path="/todoEdge" element={<ToDoLeftRightEdge />} />
-          <Route path="/step" element={<Steps />}/>
-        </Routes>
       </div>
     </Router>
   );

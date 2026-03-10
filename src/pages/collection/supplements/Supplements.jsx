@@ -15,7 +15,9 @@ import {
     Col,
 } from "antd";
 
-import OperationStatus from "../../components/OperationStatus";
+import OperationStatus from "../../../components/OperationStatus"
+import Loader from "../../../components/Loader"; 
+import { api } from "../../../config/api";
 
 const { Title } = Typography;
 
@@ -206,11 +208,11 @@ function TitleAndSubtitleInput({ value = [], setValue }) {
         setValue(arr);
     };
 
-    const handleTitlePointsChange = (idx, pts) => {
-        const arr = [...(value || [])];
-        arr[idx] = { ...(arr[idx] || {}), points: pts };
-        setValue(arr);
-    };
+    // const handleTitlePointsChange = (idx, pts) => {
+    //     const arr = [...(value || [])];
+    //     arr[idx] = { ...(arr[idx] || {}), points: pts };
+    //     setValue(arr);
+    // };
 
     // Subtitle handlers
     const addSubtitle = (titleIdx) => {
@@ -598,48 +600,22 @@ const Supplements = () => {
         setModalError("");
     };
 
-    const supplementsDBOperations = async (values, type) => {
-        try {
-            let url = "";
-            const link = "https://e2xnu2maf2ytczggyzgo5r6jsy0mfwjt.lambda-url.ap-south-1.on.aws/"
-            let method = "POST";
+  const operations = {
+  insert: (v) => api.post("insertSupplements", v),
+  update: (v) => api.put(`updateSupplements/${v.key}`, v),
+  delete: (v) => api.delete(`deleteSupplements/${v.key}`),
+  get: (v) => api.post("getSupplementsList", v)
+};
 
-            if (type === "update") {
-                url =
-                    link + "updateSupplements/" + values.key;
-                method = "PUT";
-            } else if (type === "insert") {
-
-                url = link + "insertSupplements";
-                method = "POST";
-            } else if (type === "delete") {
-                url =
-                    link + "deleteSupplements/" + values.key;
-                method = "DELETE";
-            } else if (type === "get") {
-                url =
-                    link + "getSupplementsList";
-                method = "POST";
-            }
-
-            const response = await fetch(url, {
-                method,
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body:
-                    type === "get" || (method !== "GET" && method !== "DELETE")
-                        ? JSON.stringify(values)
-                        : null,
-            });
-
-            const result = await response.json();
-            return result;
-        } catch (error) {
-            console.error("Supplements DB Operation failed:", error);
-            return { operationStatus: false };
-        }
-    };
+const supplementsDBOperations = async (values, type) => {
+  try {
+    const res = await operations[type](values);
+    return res.data;
+  } catch (error) {
+    console.error("Supplements DB Operation failed:", error);
+    return { operationStatus: false };
+  }
+};
 
     const handleFinish = async () => {
         setModalLoading(true);
@@ -847,8 +823,9 @@ const Supplements = () => {
         <div
             style={{
                 maxWidth: 1800,
-                margin: "40px auto",
-                padding: 24,
+                margin: "auto",
+                marginBottom:10,
+                padding: "0px 20px",
                 background: "#fff",
                 borderRadius: 8,
                 boxShadow: "0 2px 8px #f0f1f2",

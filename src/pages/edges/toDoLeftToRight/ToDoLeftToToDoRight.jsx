@@ -12,8 +12,9 @@ import {
   Typography,
   message
 } from "antd";
-import OperationStatus from "../../components/OperationStatus";
-import Loader from "../../components/Loader"; 
+import OperationStatus from "../../../components/OperationStatus"
+import Loader from "../../../components/Loader"; 
+import { api } from "../../../config/api";
 
 const { Option } = Select;
 const { Title } = Typography;
@@ -45,41 +46,23 @@ export default function DietAlgorithmMappingPage() {
   // NEW: overlay state to show saving indicator
   const [isLoading, setLoading] = useState(false);
 
-  const urlBase = "https://e2xnu2maf2ytczggyzgo5r6jsy0mfwjt.lambda-url.ap-south-1.on.aws/";
 
-  // DB operation helper
-  const dietMappingsDBOperations = async (values, type) => {
-    try {
-      let url = "";
-      let method = "POST";
+const operations = {
+  insert: (v) => api.post("saveDietToDoLabelEdges", v),
+  update: (v) => api.put("updateDietToDoLabelEdges/", v),
+  delete: (v) => api.delete("deleteDietToDoLabelEdges/", { data: v }),
+  get: (v) => api.post("getDietToDoLabelEdges", v),
+};
 
-      if (type === "update") {
-        //console.log(values);
-        url = urlBase + "updateDietToDoLabelEdges/";
-        method = "PUT";
-      } else if (type === "insert") {
-        url = urlBase + "saveDietToDoLabelEdges";
-        method = "POST";
-      } else if (type === "delete") {
-        url = urlBase + "deleteDietToDoLabelEdges/";
-        method = "DELETE";
-      } else if (type === "get") {
-        url = urlBase + "getDietToDoLabelEdges";
-        method = "POST";
-      }
-
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: type === "get" || (method !== "GET") ? JSON.stringify(values) : null,
-      });
-      const result = await response.json();
-      return result;
-    } catch (error) {
-      console.error("DB Operation failed:", error);
-      return { operationStatus: false };
-    }
-  };
+const dietMappingsDBOperations = async (values, type) => {
+  try {
+    const res = await operations[type](values);
+    return res.data;
+  } catch (error) {
+    console.error("DB Operation failed:", error);
+    return { operationStatus: false };
+  }
+};
 
   // fetch all mappings
   const fetchMappings = async () => {
@@ -123,8 +106,8 @@ export default function DietAlgorithmMappingPage() {
   // fetch dropdowns for Add/Edit
   const fetchDropdownData = async () => {
     try {
-      const res = await fetch(urlBase + "getToDoLabelsForEdge");
-      const data = await res.json();
+      const { data }= await api.get("getToDoLabelsForEdge");
+  
       //console.log(data);
       data.dietNodes.sort((a, b) => a.Diet_Key.localeCompare(b.Diet_Key));
       data.leftNodes.sort((a, b) => a.Label_Key.localeCompare(b.Label_Key));
@@ -457,7 +440,9 @@ function generateNumberSequenceArrayFrom(start, end) {
   ];
 
   return (
-    <div style={{ maxWidth: 1400, margin: "40px auto", padding: 24, background: "#fff", borderRadius: 8, boxShadow: "0 2px 8px #f0f1f2" }}>
+    <div style={{ maxWidth: 1400,  margin: "auto",
+                marginBottom:10,
+                padding: "0px 20px", background: "#fff", borderRadius: 8, boxShadow: "0 2px 8px #f0f1f2" }}>
       <Title level={1} style={{ textAlign: "center", marginBottom: 48 }}>
         To-Do Left/Right Label Edge Mappings
       </Title>
@@ -468,7 +453,7 @@ function generateNumberSequenceArrayFrom(start, end) {
           placeholder="Search by Label Name/Key"
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
-          style={{ width: 300, padding: 4, marginTop: 0 }}
+          style={{ width: 200, padding: 4, marginTop: 0 }}
         />
         <Select
           showSearch
@@ -562,10 +547,11 @@ function generateNumberSequenceArrayFrom(start, end) {
         open={addModalVisible}
         onCancel={() => setAddModalVisible(false)}
         footer={null}
-        width={1600}
+        centered
+        width={1400}
       >
 
-        <Form form={addForm} layout="inline" onFinish={handleAddMapping} style={{ marginBottom: 12, maxWidth: 1600, margin: "40px auto", padding: 14,paddingTop:24,paddingBottom:24, background: "#fff", borderRadius: 8, boxShadow: "0 2px 8px #f0f1f2", }}>
+        <Form form={addForm} layout="inline" onFinish={handleAddMapping} style={{ marginBottom: 12,  maxWidth: 1600,  padding: "16px 12px", background: "#fff", borderRadius: 8, boxShadow: "0 2px 8px #f0f1f2", }}>
           <Form.Item name="dietAlgorithm" rules={[{ required: true, message: "Select Diet Algorithm" }]} style={{ flex: "1 1 260px", minWidth: 200 }}>
             <Select showSearch placeholder="Diet Algorithm" style={{ width: "100%" }}>
               {dietNodes.map((d) => (
@@ -623,7 +609,7 @@ function generateNumberSequenceArrayFrom(start, end) {
               ))}
             </Select>
           </Form.Item>
-          <Form.Item name="respectiveLinkedNode" rules={[{ required: true, message: "Select Linked Node" }]} style={{ flex: "1 1 260px", minWidth: 200 }}>
+          <Form.Item name="respectiveLinkedNode" rules={[{ required: true, message: "Select Linked Node" }]} style={{ flex: "1 1 260px", minWidth: 200,marginTop:12 }}>
             <Select showSearch placeholder="Linked Node" style={{ width: "100%" }}>
               {respectiveLinkedNodes.map((r) => (
                 <Option key={r.Node_Key} value={r.Node_Key}>

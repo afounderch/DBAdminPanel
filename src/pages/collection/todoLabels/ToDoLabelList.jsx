@@ -14,8 +14,11 @@ import {
     Row,
     Col,
 } from "antd";
-import OperationStatus from "../../components/OperationStatus";
+
 import Papa from "papaparse";
+import OperationStatus from "../../../components/OperationStatus"
+
+import { api } from "../../../config/api"
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -166,44 +169,22 @@ const TodoLabelList = () => {
     
 
     // ========== DB Operations (fetch/update/delete/insert) ==========
-    const toDoLabelDBOperations = async (values, type) => {
-        try {
-            let url = "";
-            const link =
-                "https://e2xnu2maf2ytczggyzgo5r6jsy0mfwjt.lambda-url.ap-south-1.on.aws/";
-            let method = "POST";
+const endpoints = {
+  insert: (v) => api.post("insertToDoLabels", v),
+  update: (v) => api.put(`updateToDoLabels/${v.key}`, v),
+  delete: (v) => api.delete(`deleteToDoLabels/${v.key}`),
+  get: (v) => api.post("getToDoLabelList", v)
+};
 
-            if (type === "update") {
-                //console.log("Updating values:", values);
-                url = link + "updateToDoLabels/" + values.key;
-                method = "PUT";
-            } else if (type === "insert") {
-                url = link + "insertToDoLabels";
-                method = "POST";
-            } else if (type === "delete") {
-                url = link + "deleteToDoLabels/" + values.key;
-                method = "DELETE";
-            } else if (type === "get") {
-                url = link + "getToDoLabelList";
-                method = "POST";
-            }
-
-            const response = await fetch(url, {
-                method,
-                headers: { "Content-Type": "application/json" },
-                body:
-                    type === "get" || (method !== "GET" && method !== "DELETE")
-                        ? JSON.stringify(values)
-                        : null,
-            });
-
-            const result = await response.json();
-            return result;
-        } catch (error) {
-            console.error("DB Operation failed:", error);
-            return { operationStatus: false };
-        }
-    };
+const toDoLabelDBOperations = async (values, type) => {
+  try {
+    const res = await endpoints[type](values);
+    return res.data;
+  } catch (error) {
+    console.error("DB Operation failed:", error);
+    return { operationStatus: false };
+  }
+};
 
     const handleFinish = async (values) => {
         setModalLoading(true);
@@ -407,15 +388,16 @@ const TodoLabelList = () => {
         <div
             style={{
                 maxWidth: 1400,
-                margin: "40px auto",
-                padding: 24,
+                margin: "auto",
+                marginBottom:10,
+                padding: "0px 20px",
                 background: "#fff",
                 borderRadius: 8,
                 boxShadow: "0 2px 8px #f0f1f2",
             }}
         >
             <Title level={1} style={{ marginBottom: 48, textAlign: "center" }}>
-                To-Do Left / Right Label Collection
+                To-Do Label Collection
             </Title>
 
             <div

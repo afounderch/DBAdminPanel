@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
 import {
   Table,
@@ -12,14 +13,15 @@ import {
   Typography,
   message
 } from "antd";
-import OperationStatus from "../../components/OperationStatus";
-import Loader from "../../components/Loader"; 
+import OperationStatus from "../../../components/OperationStatus"
+import Loader from "../../../components/Loader"; 
+import { api } from "../../../config/api";
 
 
 const { Option } = Select;
 const { Title } = Typography;
 
-export default function supplementsToDoMappingPage() {
+const  ToDoSupplementsMapping= () =>{
   const [allData, setAllData] = useState([]);
   const [data, setData] = useState([]);
   const [searchText, setSearchText] = useState("");
@@ -48,41 +50,22 @@ export default function supplementsToDoMappingPage() {
   // NEW: overlay state to show saving indicator
   const [isLoading, setLoading] = useState(false);
 
-  const urlBase = "https://e2xnu2maf2ytczggyzgo5r6jsy0mfwjt.lambda-url.ap-south-1.on.aws/";
+ const operations = {
+  insert: (v) => api.post("saveSupplementToDoLabelEdges", v),
+  update: (v) => api.put("updateSupplementToDoLabelEdges/", v),
+  delete: (v) => api.delete("deleteSupplementToDoLabelEdges/", { data: v }),
+  get: (v) => api.post("getSupplementToDoLabelEdges", v),
+};
 
-  // DB operation helper
-  const supplementToDoDBOperations = async (values, type) => {
-    try {
-      let url = "";
-      let method = "POST";
-
-      if (type === "update") {
-        //console.log(values);
-        url = urlBase + "updateSupplementToDoLabelEdges/";
-        method = "PUT";
-      } else if (type === "insert") {
-        url = urlBase + "saveSupplementToDoLabelEdges";
-        method = "POST";
-      } else if (type === "delete") {
-        url = urlBase + "deleteSupplementToDoLabelEdges/";
-        method = "DELETE";
-      } else if (type === "get") {
-        url = urlBase + "getSupplementToDoLabelEdges";
-        method = "POST";
-      }
-
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: type === "get" || (method !== "GET") ? JSON.stringify(values) : null,
-      });
-      const result = await response.json();
-      return result;
-    } catch (error) {
-      console.error("DB Operation failed:", error);
-      return { operationStatus: false };
-    }
-  };
+const supplementToDoDBOperations = async (values, type) => {
+  try {
+    const res = await operations[type](values);
+    return res.data;
+  } catch (error) {
+    console.error("DB Operation failed:", error);
+    return { operationStatus: false };
+  }
+};
 
   // fetch all mappings
   const fetchMappings = async () => {
@@ -127,8 +110,7 @@ export default function supplementsToDoMappingPage() {
   // fetch dropdowns for Add/Edit
   const fetchDropdownData = async () => {
     try {
-      const res = await fetch(urlBase + "getSupplementsToDoLabelsForEdge");
-      const data = await res.json();
+      const {data} = await api.get("getSupplementsToDoLabelsForEdge");
       //console.log(data);
       data.conditionNodes.sort((a, b) => a.Condition_Key.localeCompare(b.Condition_Key));
       data.leftNodes.sort((a, b) => a.Label_Key.localeCompare(b.Label_Key));
@@ -480,7 +462,9 @@ export default function supplementsToDoMappingPage() {
   ];
 
   return (
-    <div style={{ maxWidth: 1400, margin: "40px auto", padding: 24, background: "#fff", borderRadius: 8, boxShadow: "0 2px 8px #f0f1f2" }}>
+    <div style={{ maxWidth: 1400,  margin: "auto",
+        marginBottom:10,
+        padding: "0px 20px", background: "#fff", borderRadius: 8, boxShadow: "0 2px 8px #f0f1f2" }}>
       <Title level={1} style={{ textAlign: "center", marginBottom: 48 }}>
         Supplement To-Do Label Edge Mappings
       </Title>
@@ -491,7 +475,7 @@ export default function supplementsToDoMappingPage() {
           placeholder="Search by Label Name/Key"
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
-          style={{ width: 250, padding: 4, marginTop: 0 }}
+          style={{ width: 200, padding: 4, marginTop: 0 }}
         />
         <Select
           showSearch
@@ -499,7 +483,7 @@ export default function supplementsToDoMappingPage() {
           placeholder="Filter by Condition"
           value={filterCondition || undefined}
           onChange={(val) => setFilterByCondition(val || "")}
-          style={{ width: 200 }}
+          style={{ width: 180 }}
         >
           {[...new Set(allData.map((i) => i.conditionKey))].map((alg) => (
             <Option key={alg} value={alg}>
@@ -510,10 +494,10 @@ export default function supplementsToDoMappingPage() {
         <Select
           showSearch
           allowClear
-          placeholder="Filter by Therapy Day"
+          placeholder="Therapy Day"
           value={filterByDay || undefined}
           onChange={(val) => setFilterByDay(val || "")}
-          style={{ width: 180 }}
+          style={{ width: 120 }}
         >
           {[...new Set(allData.map((i) => i.day))].map((alg) => (
             <Option key={alg} value={alg}>
@@ -524,10 +508,10 @@ export default function supplementsToDoMappingPage() {
           <Select
           showSearch
           allowClear
-          placeholder="Filter by Therapy Order"
+          placeholder="Therapy Order"
           value={filterByTherapyOrder || undefined}
           onChange={(val) => setFilterByTherapyOrder(val || "")}
-          style={{ width: 180 }}
+          style={{ width: 120 }}
         >
           {[...new Set(allData.map((i) => i.therapyOrder))].map((alg) => (
             <Option key={alg} value={alg}>
@@ -572,7 +556,7 @@ export default function supplementsToDoMappingPage() {
           Reset
         </Button>
         <Button type="primary" onClick={() => setAddModalVisible(true)} style={{ marginLeft: "auto" }}>
-          Add Mapping
+          Add New
         </Button>
       </div>
 
@@ -600,7 +584,8 @@ export default function supplementsToDoMappingPage() {
         open={addModalVisible}
         onCancel={() => setAddModalVisible(false)}
         footer={null}
-        width={1600}
+        centered
+        width={1400}
       >
 
         <Form form={addForm} layout="inline" onFinish={handleAddMapping} style={{
@@ -611,7 +596,7 @@ export default function supplementsToDoMappingPage() {
           rowGap: 16,
           marginBottom: 12,
           maxWidth: 1600,
-          margin: "40px auto",
+          margin: "auto",
           padding: 14,
           paddingTop: 24,
           paddingBottom: 24,
@@ -864,6 +849,6 @@ export default function supplementsToDoMappingPage() {
     </div>
   );
 }
-
+export default ToDoSupplementsMapping
 
 
