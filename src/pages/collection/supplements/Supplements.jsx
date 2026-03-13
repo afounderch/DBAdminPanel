@@ -46,6 +46,8 @@ function PointsInput({ points, setPoints, placeholder = "Enter points, Click on 
             setPoints((points || []).filter((_, idx) => idx !== i));
         }
     };
+    
+
     return (
         <>
             <div>
@@ -421,7 +423,7 @@ const Supplements = () => {
 
     const [modalLoading, setModalLoading] = useState(false);
     const [modalError, setModalError] = useState("");
-
+    const [isLoading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({
         current: 1,
         pageSize: 15,
@@ -709,7 +711,7 @@ const supplementsDBOperations = async (values, type) => {
 
     // fetch ALL once
     const fetchLabels = async () => {
-
+        setLoading(true)
         const result = await supplementsDBOperations({}, "get");
         if (result.operationStatus) {
             const mapped = result.data.map((item) => ({
@@ -731,6 +733,7 @@ const supplementsDBOperations = async (values, type) => {
         } else {
             message.error("Failed to load ToDo Labels.");
         }
+        setLoading(false)
 
     };
 
@@ -831,6 +834,7 @@ const supplementsDBOperations = async (values, type) => {
                 boxShadow: "0 2px 8px #f0f1f2",
             }}
         >
+             <Loader loading={isLoading} />
             <Title level={1} style={{ marginBottom: 24, textAlign: "center" }}>
                 Vitamins & Supplements Collection
             </Title>
@@ -900,6 +904,7 @@ const supplementsDBOperations = async (values, type) => {
                 centered
                 width={1400}
             >
+                 <Loader loading={isLoading} />
                 <form style={{ maxWidth: 1600, margin: "0 auto", padding: 24 }}>
                     <div style={{ display: "flex", gap: "16px", marginBottom: 16 }}>
                         <div style={{ flex: 1 }}>

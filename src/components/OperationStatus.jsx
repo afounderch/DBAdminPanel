@@ -19,7 +19,13 @@ export default function OperationStatus({ status }) {
     message = "🗑️ Successfully Deleted!";
   } else if (status === "error") {
     type = "error";
-    message = "❌ Something went wrong!";
+    message = "Something went wrong!";
+  }else if (status === "fileError") {
+    type = "error";
+    message = "Make sure the CSV file is in the required format";
+  }else{
+     type = "success";
+     message=status
   }
 
   return (

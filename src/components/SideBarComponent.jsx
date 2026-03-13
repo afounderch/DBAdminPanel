@@ -1,23 +1,27 @@
 import { NavLink } from "react-router-dom";
 
 const collectionItems = [
-  { path: "/todo", label: "ToDo Labels" },
-  { path: "/supplement", label: "Supplements" },
-  { path: "/step", label: "Steps" }
+  //need to the recipe page after the change
+  // { path: "/todo", label: "ToDo Labels" },
+  // { path: "/supplement", label: "Supplements" },
+  {path:"/diseasekit",label:"DiseaseKit"},
+  { path: "/step", label: "Steps" },
+  {path:"/modsubcat",label:"Mod-SubCategory"}
+  
 ];
 
 const edgeItems = [
-  { path: "/todoEdge", label: "PreDefined ToDo Left TO Right" },
-  { path: "/todoSupplementEdge", label: " Predefined ToDo TO Supplements" }
+  // { path: "/todoEdge", label: "PreDefined ToDo Left TO Right" },
+  // { path: "/todoSupplementEdge", label: " Predefined ToDo TO Supplements" },
+  { path: "/modSubCatHasStepsEdge", label: "Mod-SubCategory HAS Steps" },
+  { path: "/diseasekitHasModSubCatEdge", label: "DiseaseKit HAS Mod-SubCategory" },
 ];
-
-
 
 const Sidebar = () => {
   return (
     <div
       style={{
-        width: "200px",
+        width: "240px",
         background: "#030303",
         color: "white",
         padding: "4px 20px"

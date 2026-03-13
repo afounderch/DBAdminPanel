@@ -408,7 +408,7 @@ const supplementToDoDBOperations = async (values, type) => {
   const handleDeleteAdded = (key) => {
     setAddedMappings((prev) => prev.filter((r) => r.key !== key));
   };
-  //reset
+  
   const handleReset = () => { addForm.resetFields(); }
   const clearAllAdded = () => { setAddedMappings([]); }
 
@@ -589,7 +589,6 @@ const supplementToDoDBOperations = async (values, type) => {
       >
 
         <Form form={addForm} layout="inline" onFinish={handleAddMapping} style={{
-          // changed: make form a flex-wrap container and add rowGap for vertical spacing between wrapped rows
           display: "flex",
           flexWrap: "wrap",
           gap: 12,
@@ -683,7 +682,6 @@ const supplementToDoDBOperations = async (values, type) => {
             </Select>
           </Form.Item>
 
-          {/* Responsive buttons row: two buttons side-by-side, each taking half width */}
           <Form.Item style={{ display: "flex", gap: 8, width: "100%", marginTop: 28 ,justifyContent:"center"}}>
             <Button type="primary" htmlType="submit" style={{ flex: 1, width: 150,padding:18 }}>
               Add
@@ -741,7 +739,6 @@ const supplementToDoDBOperations = async (values, type) => {
           onFinish={handleFinishEdit}
           style={{
             marginBottom: 20,
-            // changed: ensure edit form also uses explicit flex wrap + rowGap for proper spacing between rows
             display: "flex",
             flexWrap: "wrap",
             gap: 12,

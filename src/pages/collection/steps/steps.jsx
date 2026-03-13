@@ -19,8 +19,8 @@ import {
 import Papa from "papaparse";
 
 import { UploadOutlined } from "@ant-design/icons";
-import OperationStatus from "../../../components/OperationStatus"
-import Loader from "../../../components/Loader"; 
+import OperationStatus from "../../../components/OperationStatus";
+import Loader from "../../../components/Loader";
 
 import {
   getData,
@@ -28,8 +28,8 @@ import {
   updateData,
   removeStep,
   uploadToS3,
+  insertBulkData
 } from "./stepApi";
-
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -37,11 +37,15 @@ const { Title } = Typography;
 
 const Steps = () => {
   const mediaTypes = ["Video", "Audio"];
-  const S3UploadTypes=["Yes","No"]
+  const S3UploadTypes = ["Yes", "No"];
 
   const [allSteps, setAllSteps] = useState([]);
   const [stepData, setStepData] = useState([]);
   const [fileSize, setFileSize] = useState("");
+  const [fileName, setFileName] = useState("")
+  const [fileType,setFileType]  = useState("")
+  const [minutes, setMinutes] = useState("");
+  const [seconds, setSeconds] = useState("");
   const [isLoading, setLoading] = useState(false);
   const [operationStatus, setOperationStatus] = useState(null);
   const [addModalError, setAddModalError] = useState(false);
@@ -54,6 +58,7 @@ const Steps = () => {
   });
 
   const [sortByKey, setSortByKey] = useState("asc");
+  const [sortBySize, setSortBySize]= useState('asc')
   const [filterByMediaType, setFilterByMediaType] = useState("");
   const [filterByS3Upload, setFilterByS3Upload] = useState("");
   const [searchStepByID, setSearchStepByID] = useState("");
@@ -63,25 +68,11 @@ const Steps = () => {
 
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
-  
+
   const [importfileModalVisible, setImportFileModalVisible] = useState(false);
   const [fileInputKey, setFileInputKey] = useState(Date.now());
 
 
-
-  // DELETE
-  const handleDelete = async (id) => {
-    let res = await removeStep(id);
-    if (res) {
-      const updated = allSteps.filter((step) => step.key !== id);
-      setAllSteps(updated);
-      setOperationStatus("deleted");
-      message.success("Step deleted");
-    } else {
-      setOperationStatus("error");
-      message.error("Failed to delete. Try again.");
-    }
-  };
 
   // EDIT
   const handleEdit = (record) => {
@@ -100,7 +91,7 @@ const Steps = () => {
   };
 
   // FETCH DATA
-  const fetchLabels = async () => {
+  const fetchData = async () => {
     setLoading(true);
     const result = await getData();
 
@@ -121,7 +112,8 @@ const Steps = () => {
       setPagination((prev) => ({
         ...prev,
         total: mapped.length,
-         showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`
+        showTotal: (total, range) =>
+          `${range[0]}-${range[1]} of ${total} items`,
       }));
       setLoading(false);
     } else {
@@ -130,28 +122,49 @@ const Steps = () => {
     setLoading(false);
   };
 
+    // DELETE
+  const handleDelete = async (id) => {
+    let res = await removeStep(id);
+    if (res) {
+      await fetchData()
+      // const updated = allSteps.filter((step) => step.key !== id);
+      // setAllSteps(updated);
+      setOperationStatus("deleted");
+      message.success("Step deleted");
+    } else {
+      setOperationStatus("error");
+      message.error("Failed to delete. Try again.");
+    }
+  };
+
   // SORT
   const handleKeySort = () => {
     setSortByKey((prev) => (prev === "asc" ? "desc" : "asc"));
   };
+  //   const handleSizeSort = () => {
+  //   setSortBySize((prev) => (prev === "asc" ? "desc" : "asc"));
+  // };
 
   // SEARCH + FILTER + SORT
   const handleSearchAndFilterSort = () => {
     let result = [...allSteps];
 
-    if (searchStepByID) {
-      const lower = searchStepByID.toLowerCase();
+   if (searchStepByID) {
+  const lower = searchStepByID.toLowerCase();
 
-      result = result.filter((item) => item.key.toLowerCase().includes(lower));
-    }
+  result = result.filter(
+    (item) =>
+      item?.key?.toLowerCase()?.includes(lower) ||
+      item?.stepName?.toLowerCase()?.includes(lower)
+  );
+}
 
     if (filterByMediaType) {
-      result = result.filter((step) => step.mediaType === filterByMediaType);
+      result = result.filter((step) => step?.mediaType === filterByMediaType);
     }
-     if (filterByS3Upload) {
-      result = result.filter((step) => step.s3Uploaded === filterByS3Upload);
+    if (filterByS3Upload) {
+      result = result.filter((step) => step?.s3Uploaded === filterByS3Upload);
     }
-
 
     result.sort((a, b) =>
       sortByKey === "asc"
@@ -159,10 +172,18 @@ const Steps = () => {
         : b.key.localeCompare(a.key),
     );
 
+    if(sortBySize){
+      result.sort((a, b) =>
+      sortBySize === "asc"
+        ? a.key.localeCompare(b.key)
+        : b.key.localeCompare(a.key),
+    );
+    }
+
     setPagination((prev) => ({
       ...prev,
       total: result.length,
-      showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`
+      showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
     }));
 
     setStepData(result);
@@ -172,19 +193,16 @@ const Steps = () => {
   const handleSubmit = async () => {
     const values = await form.validateFields();
     setLoading(true);
-
     let fileUploaded = "No";
-
-    let file = fileList[0]; // 👈 get file from Upload component
-
+    let file = fileList[0]; 
     if (editingRecord) {
       const updatedDataForBackend = {
         Step_Name: values.stepName,
-        Duration_IN_Minutes: values.minutes,
-        Duration_IN_Seconds: values.seconds,
-        Media_Type: values.mediaType,
+        Duration_IN_Minutes: minutes || editingRecord?.minutes,
+        Duration_IN_Seconds: seconds || editingRecord?.seconds,
+        Media_Type: fileType || editingRecord?.mediaType,
         Size: fileSize || editingRecord?.size || "0 MB",
-        S3Uploaded: fileUploaded,
+        S3Uploaded: editingRecord?.s3Uploaded,
       };
 
       let res = await updateData(editingRecord.key, updatedDataForBackend);
@@ -196,48 +214,61 @@ const Steps = () => {
       }
 
       if (res) {
-        const updatedData = {
-          key: editingRecord.key,
-          stepName: values.stepName,
-          minutes: values.minutes,
-          seconds: values.seconds,
-          mediaType: values.mediaType,
-          size: fileSize || editingRecord?.size || "0 MB",
-          s3Uploaded: fileUploaded,
-        };
+        await fetchData()
+        // const updatedData = {
+        //   key: editingRecord.key,
+        //   stepName: values.stepName,
+        //   minutes: minutes || editingRecord?.minutes,
+        //   seconds: seconds || editingRecord?.seconds,
+        //   mediaType: fileType || editingRecord?.mediaType,
+        //   size: fileSize || editingRecord?.size || "0 MB",
+        //   s3Uploaded: editingRecord?.s3Uploaded,
+        // };
 
-        const updated = allSteps.map((item) =>
-          item.key === editingRecord.key ? { ...item, ...updatedData } : item,
-        );
-        setAllSteps(updated);
+        // const updated = allSteps.map((item) =>
+        //   item.key === editingRecord.key ? { ...item, ...updatedData } : item,
+        // );
+        // setAllSteps(updated);
         setLoading(false);
+        setIsModalActive("");
         setOperationStatus("updated");
         message.success("Step updated");
-        setAddModalError(false)
-        setErrorText(false)
+        setAddModalError(false);
+        setErrorText(false);
       } else {
         setLoading(false);
+        setIsModalActive("");
         setOperationStatus("error");
-        message.error("Failed to delete. Try again.");
+        message.error("Failed to Update. Try again.");
       }
     } else {
       if (file) {
-        if (file?.name == values.key) {
+        if (file?.name.replace(".mp4","") == fileName) {
           const key = await uploadToS3(file);
           if (key) {
             fileUploaded = "Yes";
-            const newStep = {
-              _key: values.key,
-              Step_Name: values.stepName,
-              Duration_IN_Minutes: values.minutes,
-              Duration_IN_Seconds: values.seconds,
-              Media_Type: values.mediaType,
-              Size: fileSize || "0 MB",
-              S3Uploaded: fileUploaded,
-            };
-            let res = await addData(newStep);
+            const newStepForDB = {
+                _key: fileName,
+                Step_Name: values.stepName,
+                Duration_IN_Minutes: minutes,
+                Duration_IN_Seconds: seconds,
+                Media_Type: fileType,
+                Size: fileSize || "0 MB",
+                S3Uploaded: fileUploaded,
+              };
+            let res = await addData(newStepForDB);
             if (res) {
-              setAllSteps([newStep, ...allSteps]);
+              await fetchData()
+              // const newStep = {
+              //   key: fileName,
+              //   stepName: values.stepName,
+              //   minutes: minutes,
+              //   seconds: seconds,
+              //   mediaType: fileType,
+              //   size: fileSize || "0 MB",
+              //   s3Uploaded: fileUploaded,
+              // };
+              // setAllSteps([newStep, ...allSteps]);
               setOperationStatus("inserted");
               message.success("Step added");
             } else {
@@ -246,8 +277,8 @@ const Steps = () => {
             }
             setLoading(false);
             setIsModalActive("");
-            setAddModalError(false)
-            setErrorText(false)
+            setAddModalError(false);
+            setErrorText(false);
           }
         } else {
           setLoading(false);
@@ -264,13 +295,20 @@ const Steps = () => {
 
   // INITIAL LOAD
   useEffect(() => {
-    fetchLabels();
+    fetchData();
   }, []);
 
   // FILTER / SEARCH / SORT
   useEffect(() => {
     handleSearchAndFilterSort();
-  }, [sortByKey, filterByMediaType, searchStepByID, filterByS3Upload,allSteps]);
+  }, [
+    sortByKey,
+    sortBySize,
+    filterByMediaType,
+    searchStepByID,
+    filterByS3Upload,
+    allSteps,
+  ]);
 
   const handleTableChange = (newPagination) => {
     setPagination(newPagination);
@@ -304,6 +342,8 @@ const Steps = () => {
     }
 
     setImporting(true);
+    setLoading(true)
+
     setImportProgress({
       total: 0,
       processed: 0,
@@ -315,7 +355,33 @@ const Steps = () => {
       header: true,
       skipEmptyLines: true,
       complete: async (results) => {
-        const importedData = results.data.map((row) => ({
+        try{
+             const headers = results.meta.fields || [];
+          
+              const requiredHeaders = [
+                "Key",
+                "Step Name",
+                "Duration IN Minutes",
+                "Duration IN Seconds",
+                "Media Type",
+                "Size",
+                "S3Uploaded"
+              ];
+
+              const missingHeaders = requiredHeaders.filter(
+                header => !headers.includes(header)
+              );
+
+              if (missingHeaders.length > 0) {       message.error(
+                  "Invalid CSV format"
+                );
+                setImporting(false)
+                setImportFileModalVisible(false)
+                setOperationStatus("fileError")
+                setLoading(false)
+                return;
+        }
+          const importedData = results.data.map((row) => ({
           _key: row.key || row.Key,
           Step_Name: row.stepName || row["Step Name"],
           Duration_IN_Minutes: row.minutes || row["Duration IN Minutes"] || "",
@@ -325,44 +391,29 @@ const Steps = () => {
           S3Uploaded: row.s3Uploaded || row["S3Uploaded"],
         }));
 
-        setImportProgress((prev) => ({ ...prev, total: importedData.length }));
-
-        // Map each insert into a promise
-        const insertPromises = importedData.map(async (item) => {
-          const ok = await addData(item);
-
-          // Update progress after each insert
-          setImportProgress((prev) => ({
-            ...prev,
-            processed: prev.processed + 1,
-            successful: ok.operationStatus
-              ? prev.successful + 1
-              : prev.successful,
-            failedKeys: ok.operationStatus
-              ? prev.failedKeys
-              : [...prev.failedKeys, item._key],
-          }));
-
-          if (ok.operationStatus) {
-            setAllSteps((prev) => [...prev, item]);
-          }
-        });
-
-        // Wait for all inserts to complete
-        await Promise.allSettled(insertPromises);
-
-        // Show final messages
-        const { successful, failedKeys } = importProgress;
-        if (successful) {
-          message.success(`${successful} rows imported successfully.`);
+         if (importedData.length === 0) {
+          message.warning("No valid rows found in CSV.");
+          setImporting(false);
+         setLoading(false)
+          return;
         }
-        if (failedKeys.length) {
-          message.warning(`Failed to insert keys: ${failedKeys.join(", ")}`);
-        }
+         setImportProgress((prev) => ({ ...prev, total: importedData.length }));
 
+          const res = await insertBulkData(importedData);
+          if (res) {
+          setImportProgress({
+            total: importedData.length,
+            processed: importedData.length,
+            successful: importedData.length,
+            failedKeys: [],
+          });
+          setAllSteps((prev) => [...importedData, ...prev]);
+         setOperationStatus(`${importedData.length} records imported successfully`)
+        } else {
+          message.error("Bulk import failed.");
+        }
         setSelectedFile(null);
         setImportFileModalVisible(false);
-        fetchLabels();
         setImportProgress({
           total: 0,
           processed: 0,
@@ -371,21 +422,57 @@ const Steps = () => {
         });
         setImporting(false);
         setSelectedFile(null);
-        setFileInputKey(Date.now()); // reset file input
+        setFileInputKey(Date.now()); 
+        fetchData();
+
+
+        }catch(err){
+          console.log(err);
+          setOperationStatus("error")
+          setImporting(false);
+          setLoading(false)
+        }
       },
       error: (err) => {
         console.error(err);
         message.error("Failed to parse CSV");
         setImporting(false);
+        setLoading(false)
       },
     });
   };
 
-  // FILE UPLOAD HANDLER
-  const uploadProps = {
-    beforeUpload: (file) => {
-      const sizeMB = (file.size / 1024 / 1024).toFixed(2) + " MB";
+const getMediaDuration = (file) =>
+  new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const media = document.createElement(file.type.startsWith("audio") ? "audio" : "video");
+    media.preload = "metadata";
+    media.src = url;
+    media.onloadedmetadata = () => {
+      const duration = media.duration;
+      URL.revokeObjectURL(url);
+      resolve(duration);
+    };
+    media.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject("Unable to read media duration");
+    };
+  });
 
+  const uploadProps = {
+    beforeUpload: async (file) => {
+
+      const sizeMB = (file.size / 1024 / 1024).toFixed(2) + " MB";
+      const duration = await getMediaDuration(file);
+      const fName = file.name.substring(0, file.name.lastIndexOf(".")) || file.name;
+      const fType = file.type.startsWith("video") ? "Video" : "Audio";
+      const min = Math.floor(duration / 60);
+      const sec = Math.floor(duration % 60);
+
+      setFileName(fName)
+      setFileType(fType)
+      setMinutes(min)
+      setSeconds(sec)
       setFileList([file]);
       setFileSize(sizeMB);
 
@@ -407,19 +494,12 @@ const Steps = () => {
       ),
       dataIndex: "key",
     },
-
     { title: "Step Name", dataIndex: "stepName" },
-
     { title: "Media Type", dataIndex: "mediaType" },
-
     { title: "Minutes", dataIndex: "minutes" },
-
     { title: "Seconds", dataIndex: "seconds" },
-
     { title: "Size", dataIndex: "size" },
-
     { title: "S3 Upload", dataIndex: "s3Uploaded" },
-
     {
       title: "Actions",
 
@@ -447,7 +527,7 @@ const Steps = () => {
       style={{
         maxWidth: 1400,
         margin: "auto",
-        marginBottom:10,
+        marginBottom: 10,
         padding: "0px 20px",
         background: "#fff",
         borderRadius: 8,
@@ -457,14 +537,14 @@ const Steps = () => {
       {/* SEARCH + FILTER */}
 
       <Title level={1} style={{ marginBottom: 48, textAlign: "center" }}>
-        CRUD Operations For Steps Collection
+        Collection: Steps 
       </Title>
 
       <div
         style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}
       >
         <Input
-          placeholder="Search Step ID"
+          placeholder="Search by Step ID or Step Name"
           value={searchStepByID}
           onChange={(e) => setSearchStepByID(e.target.value)}
           style={{ width: 260, padding: 4, marginTop: 0 }}
@@ -483,7 +563,7 @@ const Steps = () => {
             </Option>
           ))}
         </Select>
-         <Select
+        <Select
           allowClear
           placeholder="Filter by S3 Upload"
           value={filterByS3Upload || undefined}
@@ -501,10 +581,11 @@ const Steps = () => {
           onClick={() => {
             setSearchStepByID("");
             setFilterByMediaType("");
-            setFilterByS3Upload("")
+            setFilterByS3Upload("");
             setSortByKey("asc");
+            setSortBySize("");
             setOperationStatus(null);
-            fetchLabels();
+            fetchData();
           }}
         >
           Reset
@@ -518,7 +599,10 @@ const Steps = () => {
           Add Step
         </Button>
 
-        <Button type="primary" onClick={() => setImportFileModalVisible(true)}>
+        <Button type="primary" onClick={() => {
+           setImportFileModalVisible(true)
+           setFileInputKey(Date.now()); 
+        }}>
           Import CSV
         </Button>
       </div>
@@ -533,7 +617,6 @@ const Steps = () => {
         bordered
         pagination={pagination}
         onChange={handleTableChange}
-        
       />
 
       {/* MODAL */}
@@ -542,11 +625,15 @@ const Steps = () => {
         title={editingRecord ? "Edit Step" : "Add Step"}
         open={isModalActive === "add" || isModalActive === "edit"}
         onCancel={() => {
-          setIsModalActive("")
-          setAddModalError(false)
-          setErrorText(false)
+          setIsModalActive("");
+          setMinutes("")
+          setSeconds("")
+          setFileSize("")
+          setFileName("")
+          setFileType("")
+          setAddModalError(false);
+          setErrorText(false);
         }}
-        
         onOk={handleSubmit}
         okButtonProps={{
           style: {
@@ -566,6 +653,7 @@ const Steps = () => {
         centered
         width={1000}
       >
+        <Loader loading={isLoading} />
         {addModalError ? (
           <Title level={5} style={{ textAlign: "center", color: "red" }}>
             {errorText}
@@ -574,88 +662,98 @@ const Steps = () => {
           <></>
         )}
         <Form form={form} layout="vertical" style={{ padding: 10 }}>
+
+
+           <Form.Item label="Upload File" rules={[{ required: true }]}>
+            <Upload {...uploadProps}>
+              <Button icon={<UploadOutlined />}>Select File</Button>
+            </Upload>
+          </Form.Item>
           <Row gutter={16}>
             <Col xs={24} sm={12}>
               <Form.Item
-                name="key"
                 label="Step Id"
-                rules={[{ required: true }]}
               >
-                <Input />
+                <Input style={{ width: "100%" }} 
+                 value={fileName} 
+                 readOnly  
+                 placeholder="Step Id will generate according to the selected file"/>
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>
               <Form.Item
                 name="stepName"
                 label="Step Name"
-                rules={[{ required: true }]}
+                rules={[{ required: true , message: "Please enter a step name",}]}
               >
-                <Input />
+                <Input placeholder="Provide a Name to Identify the Step Easily"/>
               </Form.Item>
             </Col>
           </Row>
 
-          <Form.Item
-            name="mediaType"
-            label="Media Type"
-            rules={[{ required: true }]}
-          >
-            <Select>
-              <Option value="Video">Video</Option>
-              <Option value="Audio">Audio</Option>
-            </Select>
-          </Form.Item>
           <Row gutter={16}>
             <Col xs={24} sm={12}>
               <Form.Item
-                name="minutes"
-                label="Minutes"
-                rules={[{ required: true }]}
+                label="Media Type"
               >
-                <InputNumber style={{ width: "100%" }} maxLength={2} />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="seconds"
-                label="Seconds"
-                rules={[{ required: true }]}
-              >
-                <InputNumber style={{ width: "100%" }} maxLength={2} />
+                <InputNumber style={{ width: "100%" }}  
+                value={fileType} 
+                readOnly
+                 placeholder="Media Type will decide according to the file"
+                />
               </Form.Item>
             </Col>
           </Row>
 
-          <Form.Item label="Upload File" rules={[{ required: true }]}>
-            <Upload {...uploadProps}>
-              <Button icon={<UploadOutlined />}>Select File</Button>
-            </Upload>
-          </Form.Item>
-
+            <Row gutter={16}>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                label="Minutes"
+              >
+                <InputNumber style={{ width: "100%" }}  
+                value={minutes} 
+                readOnly
+                 placeholder="Minutes will appear after selecting file"
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                label="Seconds"
+              >
+                <InputNumber style={{ width: "100%" }} 
+                 value={seconds} 
+                 readOnly  
+                 placeholder="Seconds will appear after selecting file"/>
+              </Form.Item>
+            </Col>
+          </Row>
           <Form.Item label="File Size">
             <Input
               value={fileSize}
               readOnly
-              placeholder="Size will appear after selecting file"
+              placeholder="Size will calculate after selecting file"
             />
           </Form.Item>
         </Form>
       </Modal>
       {/* Import File Modal */}
       <Modal
-        title="Import To-Do Labels from CSV"
+        title="Import Steps Data from CSV"
         open={importfileModalVisible}
         onCancel={() => {
           setImportFileModalVisible(false);
           setImporting(false);
           setSelectedFile(null);
+          setFileInputKey(Date.now()); // reset file input
         }}
         footer={null}
         centered
         width={600}
       >
+       <Loader loading={isLoading} />
         <p>
-          Please select a CSV file with the following headers: <br />
+          The CSV file must contain the following header: <br />
           Key, Step Name, Duration IN Minutes, Duration IN Seconds, Media Type,
           Size, S3Uploaded.
         </p>

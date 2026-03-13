@@ -18,6 +18,14 @@ const addData = async (data) => {
     console.log(error);
   }
 };
+const insertBulkData = async (data) => {
+  try {
+    const response = await api.post("insertStepBulk", {data:data});
+    return response.status === 200;
+  } catch (error) {
+    console.log(error);
+  }
+};
 
 const updateData = async (id, data) => {
   try {
@@ -30,10 +38,11 @@ const updateData = async (id, data) => {
 
 const removeStep = async (id) => {
   try {
-    const response = await api.delete(`deleteStep/${id}`);
-    return response.status === 200;
+    const res = await api.delete(`deleteStep/${id}`);
+    return res.data.Status;
   } catch (error) {
     console.log(error);
+    return false;
   }
 };
 
@@ -66,5 +75,6 @@ export {
   addData,
   updateData,
   removeStep,
-  uploadToS3
+  uploadToS3,
+  insertBulkData
 };

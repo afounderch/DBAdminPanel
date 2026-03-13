@@ -2,13 +2,17 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 import Sidebar from "./components/SideBarComponent";
 
-import RecipeForm from "./pages/collection/recipes/AddRecipe"; //recipe
+import RecipeForm from "./pages/collection/recipes/AddRecipe"; 
 import ToDoLabels from "./pages/collection/todoLabels/ToDoLabelList";
 import Steps from "./pages/collection/steps/steps";
 import Supplements from "./pages/collection/supplements/Supplements"
+import ModSubCatComponent from "./pages/collection/modsubcat/ModSubCat";
+import DiseaseKitComponent from "./pages/collection/diseasekit/DiseaseKit";
 
 import ToDoLeftRightEdge from "./pages/edges/toDoLeftToRight/ToDoLeftToToDoRight";
 import ToDoSupplementsMapping from "./pages/edges/toDoSupplementEdge/ToDoSupplementsMapping";
+import ModSubCatHasStepsEdgeComponent from "./pages/edges/modsubcatHasStepsEdge/ModSubCatHasStepsEdge";
+import DiseaseKitModSubCatEdgeComponent from "./pages/edges/diseasekitHasModsubcatEdge/DiseaseKitHasModSubCatEdge";
 
 
 
@@ -29,9 +33,13 @@ const App = () => {
             <Route path="/todo" element={<ToDoLabels />} />
             <Route path="/step" element={<Steps />} />
             <Route path="/supplement" element={<Supplements />} />
+            <Route path="/modsubcat" element={<ModSubCatComponent />} />
+            <Route path="/diseasekit" element={<DiseaseKitComponent />} />
             
             <Route path="/todoEdge" element={<ToDoLeftRightEdge />} />
             <Route path="/todoSupplementEdge" element={<ToDoSupplementsMapping />} />
+            <Route path="/modSubCatHasStepsEdge" element={<ModSubCatHasStepsEdgeComponent />} />
+            <Route path="/diseasekitHasModSubCatEdge" element={<DiseaseKitModSubCatEdgeComponent />}/>
            
           </Routes>
         </div>
