@@ -25,7 +25,8 @@ const { Title } = Typography;
 const { Option } = Select;
 
 import {
-  getData,
+  getEdgeData,
+  getCollectionData,
   insertData,
   updateData,
   removeData,
@@ -54,10 +55,19 @@ const ModSubCatHasStepsEdgeComponent = () => {
   const [editForm] = Form.useForm();
   const [addForm] = Form.useForm();
 
+  const [fromNodes,setFromNodes]= useState([])
+  const [toNodes,setToNodes]= useState([])
+
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const data = await getData();
+      const [data, result] = await Promise.all([
+                getEdgeData(),
+                getCollectionData()
+      ])
+      setFromNodes(result?.fromNodes || [])
+      setToNodes(result?.toNodes || [])
+
       if (data?.length > 0) {
         const mapped = data.map((element) => ({
           _key: element._key,
@@ -96,8 +106,9 @@ const ModSubCatHasStepsEdgeComponent = () => {
   const handleDelete = async (id) => {
     let res = await removeData(id);
     if (res) {
-      const updated = allData.filter((ele) => ele._key !== id);
-      setAllData(updated);
+      // const updated = allData.filter((ele) => ele._key !== id);
+      // setAllData(updated);
+      await fetchData()
       setOperationMessage("deleted");
       message.success("Step deleted");
     } else {
@@ -107,7 +118,8 @@ const ModSubCatHasStepsEdgeComponent = () => {
   };
 
 
-  const handleAdd = () => {
+  const handleAdd = async() => {
+    
     addForm.resetFields();
     setIsModalActive("add");
   }
@@ -124,7 +136,6 @@ const ModSubCatHasStepsEdgeComponent = () => {
             StepInModSubCatInOrder: Number(step.StepInModSubCatInOrder),
             DayOffSet: Number(step.DayOffSet)
           }))
-
           try{
           const res=await insertData(payload)
           if(res){
@@ -133,7 +144,6 @@ const ModSubCatHasStepsEdgeComponent = () => {
           setOperationMessage("inserted")
           setIsModalActive("")
           addForm.resetFields()
-          addForm.setFieldsValue({ steps: [] })
           }
         }catch(error){
           console.error(error)
@@ -195,6 +205,7 @@ const ModSubCatHasStepsEdgeComponent = () => {
       DayOffSet: Number(values.DayOffSet),
     };
 
+
     const hasChanges = Object.keys(dataToUpdate).some(
         (key) => dataToUpdate[key] !== editingRecord[key]
       );
@@ -210,12 +221,14 @@ const ModSubCatHasStepsEdgeComponent = () => {
       const response = await updateData(editingRecord._key, dataToUpdate);
 
       if (response) {
-        const updated = allData.map((item) =>
-          item._key === editingRecord._key ? { ...item, ...dataToUpdate } : item
-        );
+        // const updated = allData.map((item) =>
+        //   item._key === editingRecord._key ? { ...item, ...dataToUpdate } : item
+        // );
 
-        setAllData(updated);
+        // setAllData(updated);
+        await fetchData()
         setIsModalActive("");
+
         setOperationMessage("updated")
         message.success("Updated successfully");
         
@@ -420,9 +433,13 @@ const ModSubCatHasStepsEdgeComponent = () => {
         rules={[{ required: true, message:"Mod-SubCat required" }]}
       >
         <Select showSearch placeholder="Select Mod-SubCat">
-            {[...new Set(allData.map((i) => i._from))].map((i) => (
+            {[...new Set(
+              [...fromNodes]
+                .sort((a, b) => a._key.localeCompare(b._key))
+                .map(i => i._id)
+            )].map((i) => (
             <Option key={i} value={i}>
-              {i.replace("ModSubCat/", "")}
+               {i.replace("ModSubCat/", "")}
             </Option>
             ))}
         </Select>
@@ -452,7 +469,11 @@ const ModSubCatHasStepsEdgeComponent = () => {
                       rules={[{ required: true, message: "Step required" }]}
                       >
                       <Select showSearch placeholder="Step">
-                        {[...new Set(allData.map((i) => i._to))].map((i) => (
+                        {[...new Set(
+                          [...toNodes]
+                            .sort((a, b) => a._key.localeCompare(b._key))
+                            .map(i => i._id)
+                        )].map((i) => (
                         <Option key={i} value={i}>
                           {i.replace("Steps/", "")}
                         </Option>
@@ -564,9 +585,9 @@ const ModSubCatHasStepsEdgeComponent = () => {
         >
           <Select showSearch optionFilterProp="children" placeholder="Select ModSubCat">
             {[...new Set(
-              [...allData]
-                .sort((a, b) => a._from.localeCompare(b._from))
-                .map(i => i._from)
+              [...fromNodes]
+                .sort((a, b) => a._key.localeCompare(b._key))
+                .map(i => i._id)
             )].map(i => (
               <Option key={i} value={i}>
                 {i.replace("ModSubCat/", "")}
@@ -584,9 +605,9 @@ const ModSubCatHasStepsEdgeComponent = () => {
         >
           <Select showSearch optionFilterProp="children" placeholder="Select Step">
             {[...new Set(
-              [...allData]
-                .sort((a, b) => a._to.localeCompare(b._to))
-                .map(i => i._to)
+              [...toNodes]
+                .sort((a, b) => a._key.localeCompare(b._key))
+                .map(i => i._id)
             )].map(i => (
               <Option key={i} value={i}>
                 {i.replace("Steps/", "")}

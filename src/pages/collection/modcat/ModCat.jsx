@@ -26,15 +26,15 @@ import {
     updateData,
     removeData,
     insertBulkData
-} from "./modSubCatApi"
+} from "./modCatApi"
 import OperationStatus from "../../../components/OperationStatus";
 import Loader from "../../../components/Loader";
 
 
-const ModSubCatComponent=()=>{
+const ModCatComponent=()=>{
     
-    const [allModsubcatData,setAllModsubcatData]= useState([])
-    const [modsubcatData,setModsubcatData]= useState([])
+    const [allModcatData,setAllModcatData]= useState([])
+    const [modcatData,setModcatData]= useState([])
      const [pagination, setPagination] = useState({
         current: 1,
         pageSize: 10,
@@ -64,10 +64,11 @@ const ModSubCatComponent=()=>{
                 const mapped=data.map( (element)=> (
                 {
                     "_key":element._key,
-                    "ModSubCatName":element.ModSubCatName
+                    "ModCatName":element.ModCatName,
+                    "ModCatOrder":element.ModCatOrder
                 }))
-                setModsubcatData(mapped)
-                setAllModsubcatData(mapped)
+                setModcatData(mapped)
+                setAllModcatData(mapped)
                 setPagination((prev) => ({
                     ...prev,
                     total: mapped.length,
@@ -76,8 +77,8 @@ const ModSubCatComponent=()=>{
                 }));
             
             } else{
-                setModsubcatData([])
-                setAllModsubcatData([])
+                setModcatData([])
+                setAllModcatData([])
             }
             setLoading(false);
         } catch (error) {
@@ -86,9 +87,9 @@ const ModSubCatComponent=()=>{
         }
     }
     
-    const handleKeySort = () => {
-        setSortByKey((prev) => (prev === "asc" ? "desc" : "asc"));
-    };
+    // const handleKeySort = () => {
+    //     setSortByKey((prev) => (prev === "asc" ? "desc" : "asc"));
+    // };
 
     const handleTableChange = (newPagination) => {
         setPagination(newPagination);
@@ -100,7 +101,7 @@ const ModSubCatComponent=()=>{
 
     const handleSearchAndFilterSort=()=>{
         try {
-            let result = [...allModsubcatData];
+            let result = [...allModcatData];
 
          if (searchByID) {
              const lower = searchByID.toLowerCase();
@@ -112,11 +113,7 @@ const ModSubCatComponent=()=>{
             }
 
        
-        result.sort((a, b) =>
-            sortByKey === "asc"
-                ? a._key.localeCompare(b._key)
-                : b._key.localeCompare(a._key),
-            );
+        result.sort((a, b) =>a.ModCatOrder-b.ModCatOrder );
 
                 setPagination((prev) => ({
             ...prev,
@@ -124,7 +121,7 @@ const ModSubCatComponent=()=>{
             showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
             }));
 
-            setModsubcatData(result);
+            setModcatData(result);
 
         } catch (error) {
             console.log(error);
@@ -133,14 +130,14 @@ const ModSubCatComponent=()=>{
 
     useEffect(()=>{
             handleSearchAndFilterSort()
-        },[searchByID,sortByKey,allModsubcatData])
+        },[searchByID,sortByKey,allModcatData])
     
     const handleDelete = async (id) => {
         let res = await removeData(id);
         if (res) {
           await fetchData()
-        // const updated = allModsubcatData.filter((modsubcat) => modsubcat._key !== id);
-        // setAllModsubcatData(updated);
+        // const updated = allModcatData.filter((modsubcat) => modsubcat._key !== id);
+        // setAllModcatData(updated);
         setOperationStatus("deleted");
         message.success("deleted");
         } else {
@@ -149,11 +146,11 @@ const ModSubCatComponent=()=>{
         }
     }
 
-    // const handleEdit = (record) => {
-    //     setEditingRecord(record);
-    //     form.setFieldsValue(record);
-    //     setIsModalActive("edit");
-    // };
+    const handleEdit = (record) => {
+        setEditingRecord(record);
+        form.setFieldsValue(record);
+        setIsModalActive("edit");
+    };
 
     const handleAdd = () => {
         setEditingRecord(null);
@@ -162,21 +159,17 @@ const ModSubCatComponent=()=>{
     };
 
        const tableCol=[
-        {title: ( <span
-          style={{ cursor: "pointer", userSelect: "none" }}
-          onClick={handleKeySort}
-        >
-          Mod-Sub-Cat Id {sortByKey === "asc" ? "↑" : "↓"}
-        </span>),dataIndex:"_key"},
-        //{title: "Mod-Sub-Cat Name",dataIndex:"ModSubCatName"},
+        {title: "Mod-Cat Id",dataIndex:"_key"},
+        //{title: "Mod-Sub-Cat Name",dataIndex:"ModCatName"},
+        {title: "Order",dataIndex:"ModCatOrder"},
         {
             title: "Actions",
 
             render: (_, record) => (
                 <Space>
-                {/* <Button type="link" onClick={() => handleEdit(record)}>
+                <Button type="link" onClick={() => handleEdit(record)}>
                     Edit
-                </Button> */}
+                </Button>
 
                 <Popconfirm
                     title="Are you sure to delete?"
@@ -192,53 +185,70 @@ const ModSubCatComponent=()=>{
     ]
 
  
-    const handleSubmit = async () => {
-    const values = await form.validateFields();
-    setLoading(true);
-    if (editingRecord) {
-       const updatedData = {
-          _key: editingRecord.key,
-          ModSubCatName: values.ModSubCatName || editingRecord.ModSubCatName,
-        };
+   const handleSubmit = async () => {
+  const values = await form.validateFields();
+  setLoading(true);
 
-      let res = await updateData(editingRecord.key, updatedData);
-      if (res) {
-        const updated = allModsubcatData.map((item) =>
-          item._key === editingRecord._key ? { ...item, ...updatedData } : item,
-        );
-        setAllModsubcatData(updated);
-        setLoading(false);
-        setIsModalActive("");
-        setOperationStatus("updated");
-        message.success("ModSubCat updated");
-      } else {
-        setLoading(false);
-        setIsModalActive("");
-        setOperationStatus("error");
-        message.error("Failed to Update. Try again.");
-      }
+  if (editingRecord) {
+
+    const updatedData = {
+      ModCatName: values.ModCatName || editingRecord.ModCatName,
+      ModCatOrder: values.ModCatOrder
+    };
+
+    const res = await updateData(editingRecord._key, updatedData);
+
+    if (res) {
+
+      const updated = allModcatData.map((item) =>
+        item._key === editingRecord._key
+          ? { ...item, ...updatedData }
+          : item
+      );
+
+      setAllModcatData(updated);
+      setLoading(false);
+      setIsModalActive("");
+      setOperationStatus("updated");
+      message.success("ModCat updated");
+
     } else {
-      const newData = {
-                _key: values?.ModSubCatName
-                ?.toLowerCase()
-                ?.replace(/\b\w/g, c => c.toUpperCase())
-                ?.replace(/\s+/g, "_"),
-                ModSubCatName: values.ModSubCatName,
-        };
-            let res = await insertData(newData);
-            if (res) {
-              await fetchData()
-              //setAllModsubcatData([newData, ...allModsubcatData]);
-              setOperationStatus("inserted");
-              message.success("ModSubCat added");
-            } else {
-              setOperationStatus("error");
-              message.error("Failed to INSERT Try again.");
-            }
-            setLoading(false);
-            setIsModalActive("");
-          }
-        }
+
+      setLoading(false);
+      setIsModalActive("");
+      setOperationStatus("error");
+      message.error("Failed to update. Try again.");
+
+    }
+
+  } else {
+
+    const newData = {
+      _key: values?.ModCatName
+        ?.toLowerCase()
+        ?.replace(/\b\w/g, c => c.toUpperCase())
+        ?.replace("-", "_")
+        ?.replace(/\s+/g, "_"),
+
+      ModCatName: values.ModCatName,
+      ModCatOrder: values.ModCatOrder
+    };
+
+    const res = await insertData(newData);
+
+    if (res) {
+      await fetchData();
+      setOperationStatus("inserted");
+      message.success("ModCat added");
+    } else {
+      setOperationStatus("error");
+      message.error("Insert failed");
+    }
+
+    setLoading(false);
+    setIsModalActive("");
+  }
+};
 
       // ===================== CSV Import =====================
   // Add two new state variables
@@ -285,13 +295,20 @@ const ModSubCatComponent=()=>{
       try {
         const headers = results.meta.fields || [];
     
-        // ✅ Validate CSV Header
-        if (!headers.includes("ModSubCatName")) {
-            
+           const requiredHeaders = [
+                "ModCatName",
+                "ModCatOrder",
+              ];
+
+              const missingHeaders = requiredHeaders.filter(
+                header => !headers.includes(header)
+              );
+
+        if (missingHeaders.length > 0) {      
           message.error(
-            "Invalid CSV format. Header must contain: ModSubCatName"
+            "Invalid CSV format"
           );
-          setImporting(false);
+          setImporting(false)
           setImportFileModalVisible(false)
           setOperationStatus("fileError")
           setLoading(false)
@@ -300,14 +317,17 @@ const ModSubCatComponent=()=>{
 
         // ✅ Prepare Data
         const importedData = results.data
-          .filter((row) => row.ModSubCatName && row.ModSubCatName.trim() !== "")
+          .filter((row) => row.ModCatName && row.ModCatName.trim() !== "")
           .map((row) => ({
-            _key: row.ModSubCatName
+            _key: row.ModCatName
               ?.toLowerCase()
               ?.replace(/\b\w/g, (c) => c.toUpperCase())
               ?.replace(/\s+/g, "_"),
 
-            ModSubCatName: row.ModSubCatName.trim(),
+            ModCatName: row.ModCatName.trim()?.toLowerCase()
+              ?.replace(/\b\w/g, (c) => c.toUpperCase())
+              ?.replace(/\s+/g, "_"),
+            ModCatOrder:row.ModCatOrder
           }));
 
         if (importedData.length === 0) {
@@ -334,10 +354,10 @@ const ModSubCatComponent=()=>{
             failedKeys: [],
           });
 
-          setAllModsubcatData((prev) => [...importedData, ...prev]);
+          setAllModcatData((prev) => [...importedData, ...prev]);
 
           message.success(
-            `${importedData.length} ModSubCat records imported successfully`
+            `${importedData.length} ModCat records imported successfully`
           );
 
           setOperationStatus(`${importedData.length} records imported successfully`)
@@ -392,12 +412,12 @@ const ModSubCatComponent=()=>{
         >
   
         <Title level={1} style={{ marginBottom: 48, textAlign: "center" }}>
-            Collection: Mod-SubCat 
+            Collection: Mod-Cat 
         </Title>
 
         <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
             <Input
-                      placeholder="Search by Mod Sub Cat Name"
+                      placeholder="Search by Mod Cat"
                       value={searchByID}
                       onChange={(e) => setSearchByID(e.target.value)}
                       style={{ width: 260, padding: 4, marginTop: 0 }}
@@ -434,7 +454,7 @@ const ModSubCatComponent=()=>{
 
         <Table
             columns={tableCol}
-            dataSource={modsubcatData}
+            dataSource={modcatData}
             rowKey="_key"
             bordered
             pagination={{
@@ -480,7 +500,7 @@ const ModSubCatComponent=()=>{
               >
                 <Input style={{ width: "100%" } } 
                  readOnly
-                 placeholder="Id will generate according to the ModSubCatName"/>
+                 placeholder="Id will generate according to the ModCatName"/>
               </Form.Item>
             </Col>
            
@@ -489,11 +509,23 @@ const ModSubCatComponent=()=>{
           <Row gutter={16}>
             <Col xs={24} sm={24}>
               <Form.Item
-                name="ModSubCatName"
-                label="Mod-Sub-Category Id"
-                rules={[{ required: true , message: "Mod-Sub-Cat is required",}]}
+                name="ModCatName"
+                label="Mod-Category Id"
+                rules={[{ required: true , message: "Mod-Cat is required",}]}
+                
               >
-                <Input placeholder="ModSubCat Name will be treated as database key" style={{ width: "100%" } } />
+                <Input 
+                placeholder="ModCat Name will be treated as database key" 
+                style={{ width: "100%" }} 
+                readOnly={editingRecord ? true:false}
+                />
+              </Form.Item>
+              <Form.Item
+                name="ModCatOrder"
+                label="Order"
+                rules={[{ required: true , message: "Order required",}]}
+              >
+                <InputNumber placeholder="ModCat Order" style={{ width: "100%" } } />
               </Form.Item>
             </Col>
           </Row>
@@ -501,7 +533,7 @@ const ModSubCatComponent=()=>{
         </Form>
       </Modal>
        <Modal
-              title="Import ModSubCat Data from CSV"
+              title="Import ModCat Data from CSV"
               open={importfileModalVisible}
               onCancel={() => {
                 setImportFileModalVisible(false);
@@ -516,7 +548,7 @@ const ModSubCatComponent=()=>{
             <Loader loading={isLoading} />
               <p>
                 The CSV file must contain the following header: <br />
-                ModSubCatName
+                ModCatName, ModCatOrder
               </p>
               <p>
                 Total: {importProgress.total} | Processed: {importProgress.processed}{" "}
@@ -544,4 +576,4 @@ const ModSubCatComponent=()=>{
     )
 }
 
-export default ModSubCatComponent
+export default ModCatComponent

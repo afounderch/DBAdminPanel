@@ -25,12 +25,12 @@ import {
   updateData,
   removeData,
   getCollectionData
-} from "./diseasekitModsubcatApi";
+} from "./diseasekitModcatApi";
 import { useRef } from "react";
 import Loader from "../../../components/Loader";
 import OperationStatus from "../../../components/OperationStatus";
 
-const DiseaseKitModSubCatEdgeComponent = () => {
+const DiseaseKitModCatEdgeComponent = () => {
   const [allData, setAllData] = useState([]);
   const [edgeData, setEdgeData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,8 +50,9 @@ const DiseaseKitModSubCatEdgeComponent = () => {
 
   const [editForm] = Form.useForm();
   const [addForm] = Form.useForm();
-
-  
+  const modcatValues = Form.useWatch("modcat", addForm) || [];
+  const selectedModcats = modcatValues.map(i => i?._to);
+ 
   const [fromNodes,setFromNodes]= useState([])
   const [toNodes,setToNodes]= useState([])
 
@@ -72,8 +73,6 @@ const DiseaseKitModSubCatEdgeComponent = () => {
           _key: element._key,
           _from: element._from,
           _to: element._to,
-          ModCatOrder: element.ModCatOrder,
-          ModSubCatInModCatOrder: element.ModSubCatInModCatOrder,
         }));
         setEdgeData(mapped);
         setAllData(mapped);
@@ -126,12 +125,10 @@ const DiseaseKitModSubCatEdgeComponent = () => {
     try{
 
           setIsLoading(true)
-          const { _from, modsubcat } = values
-          const payload = modsubcat.map(modsubcat => ({
+          const { _from, modcat } = values
+          const payload = modcat.map(modcat => ({
             _from,
-            _to: modsubcat._to,
-            ModCatOrder: Number(modsubcat.ModCatOrder),
-            ModSubCatInModCatOrder: Number(modsubcat.ModSubCatInModCatOrder)
+            _to: modcat._to
           }))
 
           try{
@@ -142,12 +139,12 @@ const DiseaseKitModSubCatEdgeComponent = () => {
           setOperationMessage("inserted")
           setIsModalActive("")
           addForm.resetFields()
-          addForm.setFieldsValue({ modsubcat: [] })
+          addForm.setFieldsValue({ modcat: [] })
           }
         }catch(error){
           console.error(error)
           setOperationMessage("error")
-          message.error("Failed to add modsubcat")
+          message.error("Failed to add modcat")
         }
     }catch(error){
     console.log(error)
@@ -158,50 +155,17 @@ const DiseaseKitModSubCatEdgeComponent = () => {
 
   }
 
-  const handleAddModsubcat = (add) => {
-    const modsubcat = addForm.getFieldValue("modsubcat") || [];
-   
-    add({
-      ModCatOrder: modsubcat[modsubcat.length-1]?.ModCatOrder || 1,
-      ModSubCatInModCatOrder: modsubcat[modsubcat.length-1]?.ModSubCatInModCatOrder + 1 || 1
-    });
-  };
+ 
   
-const handleRemoveModsubcat = (remove, name) => {
+const handleRemoveModcat = (remove, name) => {
   remove(name);
-  const modsubcat = addForm.getFieldValue("modsubcat") || [];
-  const reordered = reorderModSubCat(modsubcat);
-  addForm.setFieldsValue({ modsubcat: reordered });
 };
 
-  const reorderModSubCat = (data) => {
-    const grouped = {};
+const hasDuplicateModcats = (modcats) => {
+  const values = modcats.map(i => i?._to);
+  return values.some((v, i) => values.indexOf(v) !== i);
+};
 
-    data.forEach((item) => {
-      const cat = item.ModCatOrder;
-
-      if (!grouped[cat]) {
-        grouped[cat] = [];
-      }
-
-      grouped[cat].push(item);
-    });
-
-    const result = [];
-
-    Object.keys(grouped).forEach((cat) => {
-      grouped[cat]
-        .sort((a, b) => a.ModSubCatInModCatOrder - b.ModSubCatInModCatOrder)
-        .forEach((item, index) => {
-          result.push({
-            ...item,
-            ModSubCatInModCatOrder: index + 1,
-          });
-        });
-    });
-
-    return result;
-  };
 
 
   const handleEdit = (record) => {
@@ -217,8 +181,6 @@ const handleRemoveModsubcat = (remove, name) => {
       _key: editingRecord._key,
       _from: values._from,
       _to: values._to,
-      ModCatOrder: Number(values.ModCatOrder),
-      ModSubCatInModCatOrder: Number(values.ModSubCatInModCatOrder),
     };
 
     const hasChanges = Object.keys(dataToUpdate).some(
@@ -267,8 +229,8 @@ const handleRemoveModsubcat = (remove, name) => {
     // },
     { title: "DiseaseKit  (From)", dataIndex: "_from",width:"20%" , ellipsis: true },
     { title: "Mod-SubCat (To)", dataIndex: "_to", width:"40%" , ellipsis: true},
-    { title: "Mod-Cat Order", dataIndex: "ModCatOrder",width:"15%" , ellipsis: true },
-    { title: "Mod-SubCat Order", dataIndex: "ModSubCatInModCatOrder",width:"15%" , ellipsis: true },
+    // { title: "Mod-Cat Order", dataIndex: "ModCatOrder",width:"15%" , ellipsis: true },
+    // { title: "Mod-SubCat Order", dataIndex: "ModSubCatInModCatOrder",width:"15%" , ellipsis: true },
     {
       title: "Actions",
       width:"15%" , ellipsis: true ,
@@ -356,14 +318,14 @@ const handleRemoveModsubcat = (remove, name) => {
     >
       <Loader loading={isLoading} />
       <Title level={1} style={{ marginBottom: 48, textAlign: "center" }}>
-        Edge: DiseaseKit ➡️ ModSubCat
+        Edge: DiseaseKit ➡️ ModCat
       </Title>
 
       <div
         style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}
       >
         <Input
-          placeholder="Search by Diseasekit or Mod-SubCat"
+          placeholder="Search by Diseasekit or Mod-Cat"
           value={searchByID}
           onChange={(e) => setSearchByID(e.target.value)}
           style={{ width: 260, padding: 4, marginTop: 0 }}
@@ -388,26 +350,6 @@ const handleRemoveModsubcat = (remove, name) => {
             </Option>
           ))}
         </Select>
-        <Select
-          showSearch
-          allowClear
-          placeholder="Group by Mod-Cat Order"
-          value={groupByModSubCat || undefined}
-          onChange={(val) => setGroupByModSubCat(val || "")}
-          style={{ width: 200 }}
-        >
-          {[
-            ...new Set(
-              [...allData]
-                .sort((a, b) => a._from.localeCompare(b._from))
-                .map((i) => i.ModCatOrder),
-            ),
-          ].map((alg) => (
-            <Option key={alg} value={alg}>
-              {alg}
-            </Option>
-          ))}
-          </Select>
         <Button
           type="primary"
           onClick={() => {
@@ -466,7 +408,6 @@ const handleRemoveModsubcat = (remove, name) => {
             padding: "20px 40px",
             gap:20
           }}
-      
       >
 
       <Form.Item
@@ -487,68 +428,57 @@ const handleRemoveModsubcat = (remove, name) => {
         </Select>
       </Form.Item>
      
-      <Form.List
-          name="modsubcat"
-          rules={[
-            {
-              validator: async (_, modsubcat) => {
-                if (!modsubcat || modsubcat.length < 1) {
-                  return Promise.reject(new Error("Add at least one modsubcat"));
-                }
-              },
-            },
-          ]}
-      >
+              <Form.List
+              name="modcat"
+              rules={[
+                {
+                  validator: async (_, modcat) => {
+                    if (!modcat || modcat.length < 1) {
+                      return Promise.reject(new Error("Add at least one modcat"));
+                    }
+
+                    if (hasDuplicateModcats(modcat)) {
+                      return Promise.reject(new Error("Duplicate ModCat not allowed"));
+                    }
+                  },
+                },
+              ]}
+            >
            {(fields, { add, remove }, { errors }) => (
             <>
             {fields.map(({ key, name, ...restField }) => (
               <Row gutter={16} key={key} style={{ marginBottom: 10 }}>
                 <Col span={8}>
                     <Form.Item
-                     label="Mod-SubCat (To)"
+                     label="Mod-Cat (To)"
                       {...restField}
                       name={[name, "_to"]}
-                      rules={[{ required: true, message: "ModSubCat required" }]}
+                      rules={[{ required: true, message: "ModCat required" }]}
                       >
-                      <Select showSearch placeholder="ModSubCat">
-                        {[...new Set(
-                          [...toNodes]
-                            .sort((a, b) => a._key.localeCompare(b._key))
-                            .map(i => i._id)
-                        )].map((i) => (
-                        <Option key={i} value={i}>
-                          {i.replace("ModSubCat/", "")}
-                        </Option>
-                        ))}
-                      </Select>
+                     <Select showSearch placeholder="ModCat">
+                      {toNodes.map((i) => {
+                        const currentValue = modcatValues[name]?._to;
+
+                        return (
+                          <Option
+                            key={i._id}
+                            value={i._id}
+                            disabled={
+                              selectedModcats.includes(i._id) && currentValue !== i._id
+                            }
+                          >
+                            {i._id.replace("ModCat/", "")}
+                          </Option>
+                        );
+                      })}
+                    </Select>
                     </Form.Item>
                 </Col>
 
-                <Col span={6}>
-                    <Form.Item
-                    label="Mod-Cat Order"
-                    {...restField}
-                    name={[name, "ModCatOrder"]}
-                    rules={[{ required: true ,message:"Order required"}]}
-                    >
-                   <InputNumber min={1} placeholder="Mod-Cat Order" style={{ width:"100%"}}/>
-                    </Form.Item>
-                </Col>
-
-                <Col span={6}>
-                 <Form.Item
-                    label="Mod-SubCat Order"
-                    {...restField}
-                    name={[name, "ModSubCatInModCatOrder"]}
-                    rules={[{ required: true, message:"Order required" }]}
-                     >
-                      <InputNumber min={1} placeholder="Mod-SubCat Order" style={{ width:"100%"}}/>
-                  </Form.Item>
-                </Col>
-
+              
                <Col span={4}>
                   <Form.Item label=" ">
-                  <Button danger onClick={() => handleRemoveModsubcat(remove, name)}>Remove</Button>
+                  <Button danger onClick={() => handleRemoveModcat(remove, name)}>Remove</Button>
                   </Form.Item>
                 </Col>
               </Row>
@@ -556,8 +486,8 @@ const handleRemoveModsubcat = (remove, name) => {
 
            <Form.ErrorList errors={errors} />
 
-            <Button type="dashed" onClick={() => handleAddModsubcat(add)} block>
-              + Add Mod-SubCat
+            <Button type="dashed" onClick={() => add()} block>
+              + Add Mod-Cat
             </Button>
           </>
           )}
@@ -622,41 +552,21 @@ const handleRemoveModsubcat = (remove, name) => {
 
       <Col span={24}>
         <Form.Item
-          label="Mod-SubCat (To)"
+          label="Mod-Cat (To)"
           name="_to"
-          rules={[{ required: true, message: "ModSubCat required" }]}
+          rules={[{ required: true, message: "ModCat required" }]}
         >
-          <Select showSearch optionFilterProp="children" placeholder="Select ModSubCat">
+          <Select showSearch optionFilterProp="children" placeholder="Select ModCat">
             {[...new Set(
               [...toNodes]
                 .sort((a, b) => a._key.localeCompare(b._key))
                 .map(i => i._id)
             )].map(i => (
               <Option key={i} value={i}>
-                {i.replace("ModSubCat/", "")}
+                {i.replace("ModCat/", "")}
               </Option>
             ))}
           </Select>
-        </Form.Item>
-      </Col>
-
-      <Col span={12}>
-        <Form.Item
-          label="Mod-Cat Order"
-          name="ModCatOrder"
-          rules={[{ required: true, message: "Order required" }]}
-        >
-          <InputNumber min={1} style={{ width: "100%" }} />
-        </Form.Item>
-      </Col>
-
-      <Col span={12}>
-        <Form.Item
-          label="Mod-SubCat Order"
-          name="ModSubCatInModCatOrder"
-          rules={[{ required: true, message: "Order required" }]}
-        >
-          <InputNumber min={1} style={{ width: "100%" }} />
         </Form.Item>
       </Col>
 
@@ -666,4 +576,4 @@ const handleRemoveModsubcat = (remove, name) => {
     </div>
   );
 };
-export default DiseaseKitModSubCatEdgeComponent;
+export default DiseaseKitModCatEdgeComponent;

@@ -421,15 +421,15 @@ const DiseaseKitComponent=()=>{
                       onClick={handleAdd}
                       style={{ marginLeft: "auto" }}
                     >
-                      Add Step
+                      Add New
             </Button>
-             <Button type="primary" onClick={() => { 
+             {/* <Button type="primary" onClick={() => { 
                 setImportFileModalVisible(true)
                 setSelectedFile(null)
                 setFileInputKey(Date.now()); 
              }}>
                       Import CSV
-                    </Button>
+                </Button> */}
         </div>
 
         <OperationStatus status={operationStatus} />

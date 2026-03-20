@@ -2,7 +2,7 @@ import {api} from "../../../config/api"
 
 const getEdgeData=async()=>{
     try {
-        const response= await api.get("getModSubCatHasStepEdge")
+        const response= await api.get("getDiseaseKitHasModCatEdgeData")
         return response.data
     } catch (error) {
         console.log(error)
@@ -11,16 +11,15 @@ const getEdgeData=async()=>{
 
 const getCollectionData=async()=>{
     try {
-        const response= await api.get("getModSubCatStepData")
+        const response= await api.get("getDiseaseKitModCatData")
         return response.data
     } catch (error) {
         console.log(error)
     }
 }
-
 const insertData = async (data) => {
   try {
-    const response = await api.post("/insertModSubCatHasStepEdge", data);
+    const response = await api.post("/insertDiseaseKitHasModCat", data);
     return response.status === 200;
   } catch (error) {
     console.log(error);
@@ -29,7 +28,7 @@ const insertData = async (data) => {
 
 const updateData = async (id, data) => {
   try {
-    const response = await api.put(`/updateModSubCatHasStepEdge/${id}`, data);
+    const response = await api.put(`/updateDiseaseKitHasModCat/${id}`, data);
     return response.status === 200;
   } catch (error) {
     console.log(error);
@@ -38,7 +37,7 @@ const updateData = async (id, data) => {
 
 const removeData = async (id) => {
   try {
-    const res = await api.delete(`deleteModSubCatHasStepEdge/${id}`);
+    const res = await api.delete(`deleteDiseaseKitHasModCat/${id}`);
     return res.data.Status;
   } catch (error) {
     console.log(error);

@@ -1,14 +1,22 @@
 import {api} from "../../../config/api"
 
-const getData=async()=>{
+const getEdgeData=async()=>{
     try {
-        const response= await api.get("getDiseaseKitHasModSubCat")
+        const response= await api.get("getDiseaseKitHasModSubCatEdgeData")
         return response.data
     } catch (error) {
         console.log(error)
     }
 }
 
+const getCollectionData=async()=>{
+    try {
+        const response= await api.get("getDiseaseKitModSubCatData")
+        return response.data
+    } catch (error) {
+        console.log(error)
+    }
+}
 const insertData = async (data) => {
   try {
     const response = await api.post("/insertDiseaseKitHasModSubCat", data);
@@ -39,7 +47,8 @@ const removeData = async (id) => {
 
 
 export {
-    getData,
+    getEdgeData,
+    getCollectionData,
     insertData,
     updateData,
     removeData,

@@ -5,16 +5,20 @@ const collectionItems = [
   // { path: "/todo", label: "ToDo Labels" },
   // { path: "/supplement", label: "Supplements" },
   {path:"/diseasekit",label:"DiseaseKit"},
-  { path: "/step", label: "Steps" },
-  {path:"/modsubcat",label:"Mod-SubCategory"}
+  {path:"/modcat",label:"Mod-Category"},
+  {path:"/modsubcat",label:"Mod-SubCategory"},
+  { path: "/step", label: "Steps" }
   
 ];
 
 const edgeItems = [
   // { path: "/todoEdge", label: "PreDefined ToDo Left TO Right" },
   // { path: "/todoSupplementEdge", label: " Predefined ToDo TO Supplements" },
-  { path: "/modSubCatHasStepsEdge", label: "Mod-SubCategory HAS Steps" },
   { path: "/diseasekitHasModSubCatEdge", label: "DiseaseKit HAS Mod-SubCategory" },
+  { path: "/diseasekitHasModCatEdge", label: "DiseaseKit HAS Mod-Category" },
+  { path: "/modCatHasModSubCatEdge", label: "Mod-Category HAS Mod-SubCategory" },
+  { path: "/modSubCatHasStepsEdge", label: "Mod-SubCategory HAS Steps" },
+ 
 ];
 
 const Sidebar = () => {

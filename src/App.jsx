@@ -7,12 +7,15 @@ import ToDoLabels from "./pages/collection/todoLabels/ToDoLabelList";
 import Steps from "./pages/collection/steps/steps";
 import Supplements from "./pages/collection/supplements/Supplements"
 import ModSubCatComponent from "./pages/collection/modsubcat/ModSubCat";
+import ModCatComponent from "./pages/collection/modcat/ModCat";
 import DiseaseKitComponent from "./pages/collection/diseasekit/DiseaseKit";
 
 import ToDoLeftRightEdge from "./pages/edges/toDoLeftToRight/ToDoLeftToToDoRight";
 import ToDoSupplementsMapping from "./pages/edges/toDoSupplementEdge/ToDoSupplementsMapping";
 import ModSubCatHasStepsEdgeComponent from "./pages/edges/modsubcatHasStepsEdge/ModSubCatHasStepsEdge";
+import ModCatHasModSubCatEdgeComponent from "./pages/edges/modcatHasmodsubcat/ModCatHasModSubCatEdge";
 import DiseaseKitModSubCatEdgeComponent from "./pages/edges/diseasekitHasModsubcatEdge/DiseaseKitHasModSubCatEdge";
+import DiseaseKitModCatEdgeComponent from "./pages/edges/diseasekitHasModCat/DiseaseKitHasModCatEdge";
 
 
 
@@ -34,12 +37,15 @@ const App = () => {
             <Route path="/step" element={<Steps />} />
             <Route path="/supplement" element={<Supplements />} />
             <Route path="/modsubcat" element={<ModSubCatComponent />} />
+             <Route path="/modcat" element={<ModCatComponent />} />
             <Route path="/diseasekit" element={<DiseaseKitComponent />} />
             
             <Route path="/todoEdge" element={<ToDoLeftRightEdge />} />
             <Route path="/todoSupplementEdge" element={<ToDoSupplementsMapping />} />
             <Route path="/modSubCatHasStepsEdge" element={<ModSubCatHasStepsEdgeComponent />} />
+            <Route path="/modCatHasModSubCatEdge" element={<ModCatHasModSubCatEdgeComponent />} />
             <Route path="/diseasekitHasModSubCatEdge" element={<DiseaseKitModSubCatEdgeComponent />}/>
+            <Route path="/diseasekitHasModCatEdge" element={<DiseaseKitModCatEdgeComponent />}/>
            
           </Routes>
         </div>

@@ -75,12 +75,24 @@ const Steps = () => {
 
 
   // EDIT
-  const handleEdit = (record) => {
-    setEditingRecord(record);
-    form.setFieldsValue(record);
-    setFileList([]);
-    setIsModalActive("edit");
-  };
+ const handleEdit = (record) => {
+
+  setEditingRecord(record);
+
+  form.setFieldsValue({
+    stepName: record.stepName
+  });
+
+  setMinutes(record.minutes);
+  setSeconds(record.seconds);
+  setFileSize(record.size);
+  setFileType(record.mediaType);
+  setFileName(record.key);
+
+  setFileList([]);
+
+  setIsModalActive("edit");
+};
 
   // ADD
   const addNewStep = () => {
@@ -189,109 +201,126 @@ const Steps = () => {
     setStepData(result);
   };
 
-  // SUBMIT
-  const handleSubmit = async () => {
-    const values = await form.validateFields();
-    setLoading(true);
-    let fileUploaded = "No";
-    let file = fileList[0]; 
+
+const handleSubmit = async () => {
+  const values = await form.validateFields();
+  setLoading(true);
+
+  const file = fileList[0];
+
+  try {
+
+    // ================= EDIT MODE =================
     if (editingRecord) {
-      const updatedDataForBackend = {
-        Step_Name: values.stepName,
-        Duration_IN_Minutes: minutes || editingRecord?.minutes,
-        Duration_IN_Seconds: seconds || editingRecord?.seconds,
-        Media_Type: fileType || editingRecord?.mediaType,
-        Size: fileSize || editingRecord?.size || "0 MB",
-        S3Uploaded: editingRecord?.s3Uploaded,
+
+      let updatedData = {
+        Step_Name: values.stepName
       };
 
-      let res = await updateData(editingRecord.key, updatedDataForBackend);
       if (file) {
+
+        const uploadedName =
+          file.name.substring(0, file.name.lastIndexOf(".")) || file.name;
+
+        // file name must match existing StepId
+        if (uploadedName !== editingRecord.key) {
+          setAddModalError(true);
+          setErrorText("Uploaded file name must match the existing Step Id.");
+          setLoading(false);
+          return;
+        }
+
         const key = await uploadToS3(file);
+
         if (key) {
-          fileUploaded = "Yes";
+          updatedData = {
+            ...updatedData,
+            Duration_IN_Minutes: minutes,
+            Duration_IN_Seconds: seconds,
+            Media_Type: fileType,
+            Size: fileSize || "0 MB",
+            S3Uploaded: "Yes"
+          };
         }
       }
+
+      const res = await updateData(editingRecord.key, updatedData);
 
       if (res) {
-        await fetchData()
-        // const updatedData = {
-        //   key: editingRecord.key,
-        //   stepName: values.stepName,
-        //   minutes: minutes || editingRecord?.minutes,
-        //   seconds: seconds || editingRecord?.seconds,
-        //   mediaType: fileType || editingRecord?.mediaType,
-        //   size: fileSize || editingRecord?.size || "0 MB",
-        //   s3Uploaded: editingRecord?.s3Uploaded,
-        // };
-
-        // const updated = allSteps.map((item) =>
-        //   item.key === editingRecord.key ? { ...item, ...updatedData } : item,
-        // );
-        // setAllSteps(updated);
-        setLoading(false);
-        setIsModalActive("");
+        await fetchData();
         setOperationStatus("updated");
         message.success("Step updated");
-        setAddModalError(false);
-        setErrorText(false);
       } else {
-        setLoading(false);
-        setIsModalActive("");
-        setOperationStatus("error");
-        message.error("Failed to Update. Try again.");
+        message.error("Failed to update step.");
       }
-    } else {
-      if (file) {
-        if (file?.name.replace(".mp4","") == fileName) {
-          const key = await uploadToS3(file);
-          if (key) {
-            fileUploaded = "Yes";
-            const newStepForDB = {
-                _key: fileName,
-                Step_Name: values.stepName,
-                Duration_IN_Minutes: minutes,
-                Duration_IN_Seconds: seconds,
-                Media_Type: fileType,
-                Size: fileSize || "0 MB",
-                S3Uploaded: fileUploaded,
-              };
-            let res = await addData(newStepForDB);
-            if (res) {
-              await fetchData()
-              // const newStep = {
-              //   key: fileName,
-              //   stepName: values.stepName,
-              //   minutes: minutes,
-              //   seconds: seconds,
-              //   mediaType: fileType,
-              //   size: fileSize || "0 MB",
-              //   s3Uploaded: fileUploaded,
-              // };
-              // setAllSteps([newStep, ...allSteps]);
-              setOperationStatus("inserted");
-              message.success("Step added");
-            } else {
-              setOperationStatus("error");
-              message.error("Failed to delete. Try again.");
-            }
-            setLoading(false);
-            setIsModalActive("");
-            setAddModalError(false);
-            setErrorText(false);
-          }
-        } else {
-          setLoading(false);
-          setAddModalError(true);
-          setErrorText("Step Id and File Name must be same.");
-        }
-      } else {
-        setLoading(false);
-        setAddModalError(true);
-        setErrorText("Upload the file");
-      }
+
     }
-  };
+
+    // ================= ADD MODE =================
+    else {
+
+      if (!file) {
+        setAddModalError(true);
+        setErrorText("Please upload a file.");
+        setLoading(false);
+        return;
+      }
+
+      const uploadedName =
+        file.name.substring(0, file.name.lastIndexOf(".")) || file.name;
+
+      if (uploadedName !== fileName) {
+        setAddModalError(true);
+        setErrorText("Step Id and File Name must be the same.");
+        setLoading(false);
+        return;
+      }
+
+      const key = await uploadToS3(file);
+
+      if (!key) {
+        message.error("File upload failed.");
+        setLoading(false);
+        return;
+      }
+
+      const newStep = {
+        _key: fileName,
+        Step_Name: values.stepName,
+        Duration_IN_Minutes: minutes,
+        Duration_IN_Seconds: seconds,
+        Media_Type: fileType,
+        Size: fileSize || "0 MB",
+        S3Uploaded: "Yes"
+      };
+
+      const res = await addData(newStep);
+
+      if (res) {
+        await fetchData();
+        setOperationStatus("inserted");
+        message.success("Step added");
+      } else {
+        message.error("Failed to add step.");
+      }
+
+    }
+
+    setIsModalActive("");
+    setAddModalError(false);
+    setErrorText("");
+
+  } catch (err) {
+
+    console.error(err);
+    message.error("Something went wrong.");
+
+  } finally {
+
+    setLoading(false);
+
+  }
+};
 
   // INITIAL LOAD
   useEffect(() => {
@@ -372,7 +401,8 @@ const Steps = () => {
                 header => !headers.includes(header)
               );
 
-              if (missingHeaders.length > 0) {       message.error(
+              if (missingHeaders.length > 0) {  
+                     message.error(
                   "Invalid CSV format"
                 );
                 setImporting(false)
@@ -381,14 +411,15 @@ const Steps = () => {
                 setLoading(false)
                 return;
         }
+       
           const importedData = results.data.map((row) => ({
           _key: row.key || row.Key,
-          Step_Name: row.stepName || row["Step Name"],
-          Duration_IN_Minutes: row.minutes || row["Duration IN Minutes"] || "",
-          Duration_IN_Seconds: row.seconds || row["Duration IN Seconds"] || "",
+          Step_Name: row.stepName || row["Step Name"] || "",
+          Duration_IN_Minutes: row.minutes || row["Duration IN Minutes"] || 0,
+          Duration_IN_Seconds: row.seconds || row["Duration IN Seconds"] || 0,
           Media_Type: row.mediaType || row["Media Type"] || "",
           Size: row.size || row["Size"],
-          S3Uploaded: row.s3Uploaded || row["S3Uploaded"],
+          S3Uploaded: row.s3Uploaded  || row["S3Uploaded"] || "No",
         }));
 
          if (importedData.length === 0) {
@@ -407,7 +438,8 @@ const Steps = () => {
             successful: importedData.length,
             failedKeys: [],
           });
-          setAllSteps((prev) => [...importedData, ...prev]);
+          //setAllSteps((prev) => [...importedData, ...prev]);
+          await fetchData()
          setOperationStatus(`${importedData.length} records imported successfully`)
         } else {
           message.error("Bulk import failed.");
@@ -469,7 +501,7 @@ const getMediaDuration = (file) =>
       const min = Math.floor(duration / 60);
       const sec = Math.floor(duration % 60);
 
-      setFileName(fName)
+      setFileName(editingRecord ? editingRecord.key : fName)
       setFileType(fType)
       setMinutes(min)
       setSeconds(sec)
@@ -510,7 +542,7 @@ const getMediaDuration = (file) =>
           </Button>
 
           <Popconfirm
-            title="Are you sure to delete?"
+            title="Are you sure you want to delete this video? This action will remove the file from S3 and its data from the database."
             onConfirm={() => handleDelete(record.key)}
           >
             <Button danger type="link">
@@ -596,7 +628,7 @@ const getMediaDuration = (file) =>
           onClick={addNewStep}
           style={{ marginLeft: "auto" }}
         >
-          Add Step
+          Add New
         </Button>
 
         <Button type="primary" onClick={() => {
@@ -650,6 +682,7 @@ const getMediaDuration = (file) =>
             fontWeight: "bolder",
           },
         }}
+        okText={editingRecord ? "Update" : "Insert"}
         centered
         width={1000}
       >
@@ -696,9 +729,9 @@ const getMediaDuration = (file) =>
               <Form.Item
                 label="Media Type"
               >
-                <InputNumber style={{ width: "100%" }}  
-                value={fileType} 
-                readOnly
+                <Input style={{ width: "100%" }}  
+                 value={fileType} 
+                 readOnly
                  placeholder="Media Type will decide according to the file"
                 />
               </Form.Item>

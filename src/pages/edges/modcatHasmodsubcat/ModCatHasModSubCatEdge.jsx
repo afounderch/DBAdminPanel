@@ -20,17 +20,16 @@ const { Title } = Typography;
 const { Option } = Select;
 
 import {
-  getEdgeData,
+   getEdgeData,
+  getCollectionData,
   insertData,
   updateData,
   removeData,
-  getCollectionData
-} from "./diseasekitModsubcatApi";
-import { useRef } from "react";
+} from "./modcatHasModsubcatApi";
 import Loader from "../../../components/Loader";
 import OperationStatus from "../../../components/OperationStatus";
 
-const DiseaseKitModSubCatEdgeComponent = () => {
+const ModCatHasModSubCatEdgeComponent = () => {
   const [allData, setAllData] = useState([]);
   const [edgeData, setEdgeData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -51,14 +50,11 @@ const DiseaseKitModSubCatEdgeComponent = () => {
   const [editForm] = Form.useForm();
   const [addForm] = Form.useForm();
 
-  
-  const [fromNodes,setFromNodes]= useState([])
+ const [fromNodes,setFromNodes]= useState([])
   const [toNodes,setToNodes]= useState([])
-
 
   const fetchData = async () => {
     try {
-    
       setIsLoading(true);
       const [data, result] = await Promise.all([
                 getEdgeData(),
@@ -72,8 +68,8 @@ const DiseaseKitModSubCatEdgeComponent = () => {
           _key: element._key,
           _from: element._from,
           _to: element._to,
-          ModCatOrder: element.ModCatOrder,
-          ModSubCatInModCatOrder: element.ModSubCatInModCatOrder,
+         // ModCatOrder: element.ModCatOrder,
+          ModSubCatOrder: element.ModSubCatOrder,
         }));
         setEdgeData(mapped);
         setAllData(mapped);
@@ -126,12 +122,12 @@ const DiseaseKitModSubCatEdgeComponent = () => {
     try{
 
           setIsLoading(true)
-          const { _from, modsubcat } = values
-          const payload = modsubcat.map(modsubcat => ({
+          const { _from, modcat } = values
+          const payload = modcat.map(modcat => ({
             _from,
-            _to: modsubcat._to,
-            ModCatOrder: Number(modsubcat.ModCatOrder),
-            ModSubCatInModCatOrder: Number(modsubcat.ModSubCatInModCatOrder)
+            _to: modcat._to,
+            //ModCatOrder: Number(modcat.ModCatOrder),
+            ModSubCatOrder: Number(modcat.ModSubCatOrder)
           }))
 
           try{
@@ -142,12 +138,12 @@ const DiseaseKitModSubCatEdgeComponent = () => {
           setOperationMessage("inserted")
           setIsModalActive("")
           addForm.resetFields()
-          addForm.setFieldsValue({ modsubcat: [] })
+          addForm.setFieldsValue({ modcat: [] })
           }
         }catch(error){
           console.error(error)
           setOperationMessage("error")
-          message.error("Failed to add modsubcat")
+          message.error("Failed to add modcat")
         }
     }catch(error){
     console.log(error)
@@ -159,26 +155,25 @@ const DiseaseKitModSubCatEdgeComponent = () => {
   }
 
   const handleAddModsubcat = (add) => {
-    const modsubcat = addForm.getFieldValue("modsubcat") || [];
+    const modcat = addForm.getFieldValue("modcat") || [];
    
     add({
-      ModCatOrder: modsubcat[modsubcat.length-1]?.ModCatOrder || 1,
-      ModSubCatInModCatOrder: modsubcat[modsubcat.length-1]?.ModSubCatInModCatOrder + 1 || 1
+      ModSubCatOrder: modcat[modcat.length-1]?.ModSubCatOrder + 1 || 1
     });
   };
   
 const handleRemoveModsubcat = (remove, name) => {
   remove(name);
-  const modsubcat = addForm.getFieldValue("modsubcat") || [];
-  const reordered = reorderModSubCat(modsubcat);
-  addForm.setFieldsValue({ modsubcat: reordered });
+  const modcat = addForm.getFieldValue("modcat") || [];
+  const reordered = reorderModSubCat(modcat);
+  addForm.setFieldsValue({ modcat: reordered });
 };
 
   const reorderModSubCat = (data) => {
     const grouped = {};
 
     data.forEach((item) => {
-      const cat = item.ModCatOrder;
+      const cat = item.ModSubCatOrder;
 
       if (!grouped[cat]) {
         grouped[cat] = [];
@@ -191,11 +186,11 @@ const handleRemoveModsubcat = (remove, name) => {
 
     Object.keys(grouped).forEach((cat) => {
       grouped[cat]
-        .sort((a, b) => a.ModSubCatInModCatOrder - b.ModSubCatInModCatOrder)
+        .sort((a, b) => a.ModSubCatOrder - b.ModSubCatOrder)
         .forEach((item, index) => {
           result.push({
             ...item,
-            ModSubCatInModCatOrder: index + 1,
+            ModSubCatOrder: index + 1,
           });
         });
     });
@@ -217,8 +212,7 @@ const handleRemoveModsubcat = (remove, name) => {
       _key: editingRecord._key,
       _from: values._from,
       _to: values._to,
-      ModCatOrder: Number(values.ModCatOrder),
-      ModSubCatInModCatOrder: Number(values.ModSubCatInModCatOrder),
+      ModSubCatOrder: Number(values.ModSubCatOrder),
     };
 
     const hasChanges = Object.keys(dataToUpdate).some(
@@ -265,10 +259,9 @@ const handleRemoveModsubcat = (remove, name) => {
     //   ),
     //   dataIndex: "_key",
     // },
-    { title: "DiseaseKit  (From)", dataIndex: "_from",width:"20%" , ellipsis: true },
+    { title: "Mod-Cat  (From)", dataIndex: "_from",width:"20%" , ellipsis: true },
     { title: "Mod-SubCat (To)", dataIndex: "_to", width:"40%" , ellipsis: true},
-    { title: "Mod-Cat Order", dataIndex: "ModCatOrder",width:"15%" , ellipsis: true },
-    { title: "Mod-SubCat Order", dataIndex: "ModSubCatInModCatOrder",width:"15%" , ellipsis: true },
+    { title: "Mod-SubCat Order", dataIndex: "ModSubCatOrder",width:"15%" , ellipsis: true },
     {
       title: "Actions",
       width:"15%" , ellipsis: true ,
@@ -311,18 +304,18 @@ const handleRemoveModsubcat = (remove, name) => {
       if (filterByFromId) {
         result = result.filter((ele) => ele._from == filterByFromId);
       }
-       if (groupByModSubCat) {
-        result = result.filter((ele) => ele.ModCatOrder == groupByModSubCat);
-      }
+      //  if (groupByModSubCat) {
+      //   result = result.filter((ele) => ele.ModCatOrder == groupByModSubCat);
+      // }
 
       result.sort((a, b) => {
-        const modCatOrderCompare = a.ModCatOrder - b.ModCatOrder;
+        const modCatOrderCompare = a._from - b._from;
 
         if (modCatOrderCompare !== 0) {
           return modCatOrderCompare; 
         }
 
-        return a.ModSubCatInModCatOrder - b.ModSubCatInModCatOrder
+        return a.ModSubCatOrder - b.ModSubCatOrder
       });
 
       setPagination((prev) => ({
@@ -340,7 +333,7 @@ const handleRemoveModsubcat = (remove, name) => {
 
   useEffect(() => {
     handleSearchAndFilterSort();
-  }, [searchByID, sortByKey, filterByFromId,groupByModSubCat, allData]);
+  }, [searchByID, sortByKey, filterByFromId, allData]);
 
   return (
     <div
@@ -356,14 +349,14 @@ const handleRemoveModsubcat = (remove, name) => {
     >
       <Loader loading={isLoading} />
       <Title level={1} style={{ marginBottom: 48, textAlign: "center" }}>
-        Edge: DiseaseKit ➡️ ModSubCat
+        Edge: ModCat ➡️ ModSubCat
       </Title>
 
       <div
         style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}
       >
         <Input
-          placeholder="Search by Diseasekit or Mod-SubCat"
+          placeholder="Search by Mod-Cat or Mod-SubCat"
           value={searchByID}
           onChange={(e) => setSearchByID(e.target.value)}
           style={{ width: 260, padding: 4, marginTop: 0 }}
@@ -371,7 +364,7 @@ const handleRemoveModsubcat = (remove, name) => {
         <Select
           showSearch
           allowClear
-          placeholder="Group by Disease Kit"
+          placeholder="Group by Mod-Cat"
           value={filterByFromId || undefined}
           onChange={(val) => setfilterByFromId(val || "")}
           style={{ width: 340 }}
@@ -384,11 +377,11 @@ const handleRemoveModsubcat = (remove, name) => {
             ),
           ].map((alg) => (
             <Option key={alg} value={alg}>
-              {alg.replace("DiseaseKit/", "")}
+              {alg.replace("ModCat/", "")}
             </Option>
           ))}
         </Select>
-        <Select
+        {/* <Select
           showSearch
           allowClear
           placeholder="Group by Mod-Cat Order"
@@ -407,7 +400,7 @@ const handleRemoveModsubcat = (remove, name) => {
               {alg}
             </Option>
           ))}
-          </Select>
+          </Select> */}
         <Button
           type="primary"
           onClick={() => {
@@ -470,30 +463,30 @@ const handleRemoveModsubcat = (remove, name) => {
       >
 
       <Form.Item
-        label="Disease Kit (From)"
+        label="ModCat (From)"
         name="_from"
-        rules={[{ required: true, message:"Disease Kit required" }]}
+        rules={[{ required: true, message:"ModCat required" }]}
       >
-        <Select showSearch placeholder="Select Disease Kit">
+        <Select showSearch placeholder="Select ModCat">
             {[...new Set(
               [...fromNodes]
                 .sort((a, b) => a._key.localeCompare(b._key))
                 .map(i => i._id)
             )].map((i) => (
             <Option key={i} value={i}>
-              {i.replace("DiseaseKit/", "")}
+              {i.replace("ModCat/", "")}
             </Option>
             ))}
         </Select>
       </Form.Item>
      
       <Form.List
-          name="modsubcat"
+          name="modcat"
           rules={[
             {
-              validator: async (_, modsubcat) => {
-                if (!modsubcat || modsubcat.length < 1) {
-                  return Promise.reject(new Error("Add at least one modsubcat"));
+              validator: async (_, modcat) => {
+                if (!modcat || modcat.length < 1) {
+                  return Promise.reject(new Error("Add at least one modcat"));
                 }
               },
             },
@@ -512,10 +505,10 @@ const handleRemoveModsubcat = (remove, name) => {
                       >
                       <Select showSearch placeholder="ModSubCat">
                         {[...new Set(
-                          [...toNodes]
-                            .sort((a, b) => a._key.localeCompare(b._key))
-                            .map(i => i._id)
-                        )].map((i) => (
+                            [...toNodes]
+                              .sort((a, b) => a._key.localeCompare(b._key))
+                              .map(i => i._id)
+                          )].map((i) => (
                         <Option key={i} value={i}>
                           {i.replace("ModSubCat/", "")}
                         </Option>
@@ -526,25 +519,15 @@ const handleRemoveModsubcat = (remove, name) => {
 
                 <Col span={6}>
                     <Form.Item
-                    label="Mod-Cat Order"
+                    label="Mod-SubCat Order"
                     {...restField}
-                    name={[name, "ModCatOrder"]}
+                    name={[name, "ModSubCatOrder"]}
                     rules={[{ required: true ,message:"Order required"}]}
                     >
-                   <InputNumber min={1} placeholder="Mod-Cat Order" style={{ width:"100%"}}/>
+                   <InputNumber min={1} placeholder="Mod-SubCat Order" style={{ width:"100%"}}/>
                     </Form.Item>
                 </Col>
 
-                <Col span={6}>
-                 <Form.Item
-                    label="Mod-SubCat Order"
-                    {...restField}
-                    name={[name, "ModSubCatInModCatOrder"]}
-                    rules={[{ required: true, message:"Order required" }]}
-                     >
-                      <InputNumber min={1} placeholder="Mod-SubCat Order" style={{ width:"100%"}}/>
-                  </Form.Item>
-                </Col>
 
                <Col span={4}>
                   <Form.Item label=" ">
@@ -602,18 +585,18 @@ const handleRemoveModsubcat = (remove, name) => {
 
       <Col span={24}>
         <Form.Item
-          label="Disease Kit (From)"
+          label="ModCat (From)"
           name="_from"
           rules={[{ required: true, message: "DiseaseKit required" }]}
         >
-          <Select showSearch optionFilterProp="children" placeholder="Select Disease Kit">
+          <Select showSearch optionFilterProp="children" placeholder="Select ModCat">
             {[...new Set(
               [...fromNodes]
                 .sort((a, b) => a._key.localeCompare(b._key))
                 .map(i => i._id)
             )].map(i => (
               <Option key={i} value={i}>
-                {i.replace("DiseaseKit/", "")}
+                {i.replace("ModCat/", "")}
               </Option>
             ))}
           </Select>
@@ -640,20 +623,11 @@ const handleRemoveModsubcat = (remove, name) => {
         </Form.Item>
       </Col>
 
-      <Col span={12}>
-        <Form.Item
-          label="Mod-Cat Order"
-          name="ModCatOrder"
-          rules={[{ required: true, message: "Order required" }]}
-        >
-          <InputNumber min={1} style={{ width: "100%" }} />
-        </Form.Item>
-      </Col>
 
       <Col span={12}>
         <Form.Item
           label="Mod-SubCat Order"
-          name="ModSubCatInModCatOrder"
+          name="ModSubCatOrder"
           rules={[{ required: true, message: "Order required" }]}
         >
           <InputNumber min={1} style={{ width: "100%" }} />
@@ -666,4 +640,4 @@ const handleRemoveModsubcat = (remove, name) => {
     </div>
   );
 };
-export default DiseaseKitModSubCatEdgeComponent;
+export default ModCatHasModSubCatEdgeComponent;
